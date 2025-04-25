@@ -7,7 +7,6 @@ interface CalendarDay {
   day: number;
   month: number;
   year: number;
-  dayName: string;
   isToday: boolean;
   isSelected: boolean;
 }
@@ -31,22 +30,26 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
       
       const days: CalendarDay[] = [];
       
-      const daysInPreviousMonth = new Date(year, month, 0).getDate();
+      // Get the first day of the week (0 = Sunday, 1 = Monday, etc.)
       const firstDayOfWeek = firstDay.getDay();
+      // Adjust to start from Monday (1) instead of Sunday (0)
+      const adjustedFirstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
       
-      for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      // Add days from previous month
+      const daysInPreviousMonth = new Date(year, month, 0).getDate();
+      for (let i = adjustedFirstDayOfWeek - 1; i >= 0; i--) {
         const date = new Date(year, month - 1, daysInPreviousMonth - i);
         days.push({
           date: date.getDate(),
           day: date.getDay(),
           month: date.getMonth(),
           year: date.getFullYear(),
-          dayName: getDayName(date.getDay()),
           isToday: isSameDay(date, today),
           isSelected: isSameDay(date, selectedDate)
         });
       }
       
+      // Add days from current month
       for (let i = 1; i <= lastDay.getDate(); i++) {
         const date = new Date(year, month, i);
         days.push({
@@ -54,12 +57,12 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
           day: date.getDay(),
           month: date.getMonth(),
           year: date.getFullYear(),
-          dayName: getDayName(date.getDay()),
           isToday: isSameDay(date, today),
           isSelected: isSameDay(date, selectedDate)
         });
       }
       
+      // Add days from next month
       const remainingDays = 42 - days.length;
       for (let i = 1; i <= remainingDays; i++) {
         const date = new Date(year, month + 1, i);
@@ -68,7 +71,6 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
           day: date.getDay(),
           month: date.getMonth(),
           year: date.getFullYear(),
-          dayName: getDayName(date.getDay()),
           isToday: isSameDay(date, today),
           isSelected: isSameDay(date, selectedDate)
         });
@@ -79,11 +81,6 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
     
     generateCalendar();
   }, [currentMonth, selectedDate]);
-
-  const getDayName = (day: number): string => {
-    const days = ['CN', '2', '3', '4', '5', '6', '7'];
-    return days[day];
-  };
 
   const isSameDay = (date1: Date, date2: Date): boolean => {
     return (
@@ -125,12 +122,12 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
         </div>
         
         <div className="grid grid-cols-7 gap-1 text-center">
-          <div className="font-medium">2</div>
-          <div className="font-medium">3</div>
-          <div className="font-medium">4</div>
-          <div className="font-medium">5</div>
-          <div className="font-medium">6</div>
-          <div className="font-medium">7</div>
+          <div className="font-medium">T2</div>
+          <div className="font-medium">T3</div>
+          <div className="font-medium">T4</div>
+          <div className="font-medium">T5</div>
+          <div className="font-medium">T6</div>
+          <div className="font-medium">T7</div>
           <div className="font-medium text-red-600">CN</div>
           
           {calendar.map((day, index) => (
@@ -153,4 +150,4 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
   );
 };
 
-export default Calendar; 
+export default Calendar;

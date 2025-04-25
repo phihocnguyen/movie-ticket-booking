@@ -26,15 +26,8 @@ const TheaterItem: React.FC<TheaterItemProps> = ({
   onSelectTime
 }) => {
   return (
-    <div className="mb-6 border rounded-lg p-4">
+    <div className="mb-6 border border-dashed border-gray-300 rounded-lg p-4">
       <div className="flex items-center mb-3">
-        <Image
-          src={logo}
-          alt={name}
-          width={40}
-          height={40}
-          className="mr-3"
-        />
         <div>
           <h3 className="font-bold text-black">{name}</h3>
           <p className="text-sm text-black">{address}</p>
@@ -46,7 +39,7 @@ const TheaterItem: React.FC<TheaterItemProps> = ({
           <button
             key={index}
             onClick={() => onSelectTime(showtime.time, id)}
-            className="border rounded p-2 text-center hover:bg-blue-50"
+            className="cursor-pointer border border-dashed border-gray-300 rounded p-2 text-center hover:bg-blue-50"
           >
             <div className="font-medium">{showtime.time}</div>
             <div className="text-sm text-black">
