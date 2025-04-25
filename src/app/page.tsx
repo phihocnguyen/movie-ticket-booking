@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <div className="max-w-screen h-screen mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div className="max-w-screen h-screen mx-auto bg-white shadow-md overflow-hidden">
       <div>
         <MoviePoster/>
       </div>

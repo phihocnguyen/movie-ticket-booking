@@ -160,10 +160,8 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
         
         {/* Right side - Seat selection */}
         <div className="md:w-3/4">
-          <div className="border-t border-dashed border-gray-300 relative mb-6">
-            <div className="text-center text-gray-400 bg-white px-6 absolute -top-3 left-1/2 transform -translate-x-1/2">
-              Màn hình
-            </div>
+          <div className="relative mb-6">
+            <Image src="https://www.bhdstar.vn/wp-content/assets/loodo/seatMapHeader.png" alt="Screen" width={1000} height={1000} />
           </div>
           
           <div className="overflow-x-auto">
@@ -326,9 +324,9 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
               
               <div className="mt-4 md:mt-0 w-full md:w-auto">
                 <button 
-                  className={`w-full md:w-auto px-6 py-2 font-medium rounded transition ${
+                  className={`block ml-auto w-full md:w-auto px-6 py-2 font-medium rounded transition ${
                     selectedSeats.length > 0 
-                      ? 'bg-red-600 text-white hover:bg-red-700' 
+                      ? 'bg-red-600 text-white hover:bg-red-700 cursor-pointer' 
                       : 'bg-gray-400 text-white cursor-not-allowed'
                   }`}
                   disabled={selectedSeats.length === 0}

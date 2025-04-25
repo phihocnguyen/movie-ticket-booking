@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FaPlay, FaPlus, FaStar, FaClock, FaCalendarAlt } from 'react-icons/fa';
 import ShowtimeComponent from '@/app/movies/[id]/components/Showtime';
+import TrailerModal from './TrailerModal';
 
 export interface Movie {
   id: string;
@@ -19,6 +20,7 @@ export interface Movie {
   duration?: string;
   releaseDate?: string;
   rating?: number;
+  trailerId?: string;
 }
 
 interface MovieContentProps {
@@ -26,10 +28,14 @@ interface MovieContentProps {
 }
 
 export function MovieContent({ movie }: MovieContentProps) {
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="relative w-full h-[500px]">
-        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-10" />
+        <div className="absolute top-0 left-0 right-0 h-2/3 bg-gradient-to-b from-black/90 to-transparent z-10" />
+        
         <Image
           src={movie.imagePath}
           alt={movie.title}
@@ -38,9 +44,11 @@ export function MovieContent({ movie }: MovieContentProps) {
           className="object-cover"
           unoptimized
         />
+        
         <div className="absolute bottom-0 left-0 right-0 z-20 p-8 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-start gap-8">
             <div className="relative w-48 h-72 shadow-[0_0_15px_rgba(0,0,0,0.5)] rounded-lg overflow-hidden hidden md:block">
+              <div className="absolute inset-0 bg-black/20 z-10" />
               <Image
                 src={movie.imagePath}
                 alt={movie.title}
@@ -73,16 +81,11 @@ export function MovieContent({ movie }: MovieContentProps) {
               </p>
               
               <div className="flex space-x-4 mb-6">
-                <Link 
-                  href={`/watch/${movie.id}`} 
-                  className="bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-md flex items-center transition"
-                >
-                  <FaPlay className="mr-2" /> Xem phim
-                </Link>
                 <button 
-                  className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md flex items-center transition"
+                  onClick={() => setIsTrailerOpen(true)}
+                  className="cursor-pointer bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-md flex items-center transition"
                 >
-                  <FaPlus className="mr-2" /> Thêm vào danh sách
+                  <FaPlay className="mr-2" /> Xem trailer
                 </button>
               </div>
               
@@ -99,6 +102,12 @@ export function MovieContent({ movie }: MovieContentProps) {
         <h2 className="text-2xl font-bold border-l-4 border-green-500 pl-4 mb-6">LỊCH CHIẾU</h2>
         <ShowtimeComponent movieId={movie.id} movieTitle={movie.title} />
       </div>
+
+      <TrailerModal 
+        isOpen={isTrailerOpen}
+        onClose={() => setIsTrailerOpen(false)}
+        videoId={movie.trailerId || ''}
+      />
     </div>
   );
 }
@@ -125,7 +134,8 @@ export default function MovieDetail({ id }: MovieDetailProps) {
       genre: "Fantasy, Comedy, Family",
       duration: "105 phút",
       releaseDate: "21/09/2018",
-      rating: 4.3
+      rating: 4.3,
+      trailerId: "oQGA42-U0Ro"
     };
   }
 
