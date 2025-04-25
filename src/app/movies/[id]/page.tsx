@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import MovieDetail from './MovieDetail';
+import MovieDetail from './components/MovieDetail';
 
 export default async function MovieDetailWrapper({ params }: { params: Promise<{ id: string }> }) {
   const {id} = await params;

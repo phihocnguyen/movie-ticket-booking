@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaPlay, FaPlus, FaStar, FaClock, FaCalendarAlt } from 'react-icons/fa';
-import ShowtimeComponent from '@/app/components/Showtime';
+import ShowtimeComponent from '@/app/movies/[id]/components/Showtime';
 
 export interface Movie {
   id: string;
