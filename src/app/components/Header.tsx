@@ -10,7 +10,9 @@ const Header: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isTheaterModalOpen, setIsTheaterModalOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  console.log(pathname);
+  const isSeatSelection = pathname.includes("/seat-selection") || pathname.includes("/theaters")  ;
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -45,12 +47,12 @@ const Header: React.FC = () => {
   const closeTheaterModal = () => {
     setIsTheaterModalOpen(false);
   };
-
+  console.log(isSeatSelection);
   return (
     <>
       <header 
         className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled ? 'bg-black/90 shadow-xl backdrop-blur-sm' : 'bg-transparent'
+          isScrolled ? 'bg-black/90 shadow-xl backdrop-blur-sm' : isSeatSelection ? 'bg-black' : 'bg-transparent'
         }`}
       >
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">

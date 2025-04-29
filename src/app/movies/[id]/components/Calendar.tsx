@@ -41,7 +41,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
         const date = new Date(year, month - 1, daysInPreviousMonth - i);
         days.push({
           date: date.getDate(),
-          day: date.getDay(),
+          day: date.getDay() === 0 ? 6 : date.getDay() - 1, // Convert to 0-6 where 0 is Monday
           month: date.getMonth(),
           year: date.getFullYear(),
           isToday: isSameDay(date, today),
@@ -54,7 +54,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
         const date = new Date(year, month, i);
         days.push({
           date: i,
-          day: date.getDay(),
+          day: date.getDay() === 0 ? 6 : date.getDay() - 1, // Convert to 0-6 where 0 is Monday
           month: date.getMonth(),
           year: date.getFullYear(),
           isToday: isSameDay(date, today),
@@ -68,7 +68,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
         const date = new Date(year, month + 1, i);
         days.push({
           date: i,
-          day: date.getDay(),
+          day: date.getDay() === 0 ? 6 : date.getDay() - 1, // Convert to 0-6 where 0 is Monday
           month: date.getMonth(),
           year: date.getFullYear(),
           isToday: isSameDay(date, today),
@@ -138,7 +138,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
                 py-2 cursor-pointer transition
                 ${day.isSelected ? 'bg-blue-600 text-white' : day.isToday ? 'border border-blue-600 text-blue-600' : 'text-gray-600 hover:bg-gray-200'}
                 ${day.month !== currentMonth.getMonth() ? 'text-gray-300' : ''}
-                ${day.day === 0 ? 'text-red-500' : ''}
+                ${day.day === 6 ? 'text-red-500' : ''}
               `}
             >
               {day.date}
