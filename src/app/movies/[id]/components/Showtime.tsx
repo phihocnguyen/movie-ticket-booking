@@ -4,6 +4,7 @@ import Calendar from './Calendar';
 import TheaterList from './TheaterList';
 import SeatSelection from './SeatSelection';
 import BookingTimeline from './BookingTimeline';
+import { useRouter } from 'next/navigation';
 
 interface ShowtimeProps {
   movieId: string;
@@ -26,6 +27,7 @@ interface Showtime {
 }
 
 const ShowtimeComponent: React.FC<ShowtimeProps> = ({ movieId, movieTitle }) => {
+  const router = useRouter();
   const [selectedTheater, setSelectedTheater] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -78,10 +80,15 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({ movieId, movieTitle }) => 
   ];
 
   const handleSelectTime = (time: string, theaterId: string) => {
-    setSelectedTime(time);
-    setSelectedTheater(theaterId);
-    setShowSeatSelection(true);
-    setCurrentStep(2);
+    const theater = theaters.find(t => t.id === theaterId);
+    if (!theater) return;
+    const params = new URLSearchParams({
+      movieTitle,
+      theaterName: theater.name,
+      showtime: time,
+      date: selectedDate.toISOString(),
+    });
+    router.push(`/seat-selection?${params.toString()}`);
   };
 
   const handleBackToShowtimes = () => {

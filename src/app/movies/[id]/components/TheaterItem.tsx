@@ -39,7 +39,7 @@ const TheaterItem: React.FC<TheaterItemProps> = ({
           <button
             key={index}
             onClick={() => onSelectTime(showtime.time, id)}
-            className="cursor-pointer border border-dashed border-gray-300 rounded p-2 text-center hover:bg-blue-50"
+            className="px-4 py-2 bg-white border border-gray-200 rounded-md hover:border-blue-300 transition-colors text-center cursor-pointer"
           >
             <div className="font-medium">{showtime.time}</div>
             <div className="text-sm text-black">
