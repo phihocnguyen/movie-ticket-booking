@@ -402,12 +402,12 @@ export default function EarlyScreeningMovies() {
                   {/* Badges */}
                   <div className="absolute top-2 left-2 flex gap-1">
                     {movie.isNew && (
-                      <span className="bg-red-600 text-white text-xs px-2 py-1 rounded">
+                      <span className="bg-[var(--color-indigo-600)] text-white text-xs px-2 py-1 rounded">
                         MỚI
                       </span>
                     )}
                     {movie.isPromoted && (
-                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                      <span className="bg-[var(--color-indigo-600)] text-white text-xs px-2 py-1 rounded">
                         ĐƯỢC TÀI TRỢ
                       </span>
                     )}

@@ -136,7 +136,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDate, onDateSelect }) => {
               onClick={() => onDateSelect(new Date(day.year, day.month, day.date))}
               className={`
                 py-2 cursor-pointer transition
-                ${day.isSelected ? 'bg-blue-600 text-white' : day.isToday ? 'border border-blue-600 text-blue-600' : 'text-gray-600 hover:bg-gray-200'}
+                ${day.isSelected ? 'bg-[var(--color-indigo-600)] text-white' : day.isToday ? 'border border-[var(--color-indigo-600)] text-[var(--color-indigo-600)]' : 'text-gray-600 hover:bg-gray-200'}
                 ${day.month !== currentMonth.getMonth() ? 'text-gray-300' : ''}
                 ${day.day === 6 ? 'text-red-500' : ''}
               `}

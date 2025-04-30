@@ -1,6 +1,7 @@
 "use client";
 import { useSearchParams, useRouter } from "next/navigation";
 import SeatSelection from "../movies/[id]/components/SeatSelection";
+import BookingTimeline from "../movies/[id]/components/BookingTimeline";
 
 const SeatSelectionPage = () => {
   const searchParams = useSearchParams();
@@ -13,13 +14,16 @@ const SeatSelectionPage = () => {
   const date = new Date(dateStr);
 
   return (
-    <SeatSelection
-      movieTitle={movieTitle}
-      theaterName={theaterName}
-      showtime={showtime}
-      date={date}
-      onBack={() => router.back()}
-    />
+    <div className="container mx-auto px-4">
+      <BookingTimeline currentStep={2} />
+      <SeatSelection
+        movieTitle={movieTitle}
+        theaterName={theaterName}
+        showtime={showtime}
+        date={date}
+        onBack={() => router.back()}
+      />
+    </div>
   );
 };
 

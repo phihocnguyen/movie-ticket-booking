@@ -15,7 +15,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[var(--color-indigo-50)] to-white py-12 px-4 sm:px-6 lg:px-8">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -28,7 +28,7 @@ export default function LoginForm() {
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+            <Link href="/register" className="font-medium text-[var(--color-indigo-600)] hover:text-[var(--color-indigo-500)] transition-colors">
               Sign up
             </Link>
           </p>
@@ -45,7 +45,7 @@ export default function LoginForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-indigo-500)] focus:border-[var(--color-indigo-500)] transition-all"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -61,7 +61,7 @@ export default function LoginForm() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-indigo-500)] focus:border-[var(--color-indigo-500)] transition-all"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -75,7 +75,7 @@ export default function LoginForm() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition-colors"
+                className="h-4 w-4 text-[var(--color-indigo-600)] focus:ring-[var(--color-indigo-500)] border-gray-300 rounded transition-colors"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                 Remember me
@@ -83,7 +83,7 @@ export default function LoginForm() {
             </div>
 
             <div className="text-sm">
-              <Link href="#" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+              <Link href="#" className="font-medium text-[var(--color-indigo-600)] hover:text-[var(--color-indigo-500)] transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -95,7 +95,7 @@ export default function LoginForm() {
           >
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-md"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[var(--color-indigo-600)] hover:bg-[var(--color-indigo-700)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-indigo-500)] transition-colors shadow-md"
             >
               Sign in
             </button>

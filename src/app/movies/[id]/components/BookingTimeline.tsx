@@ -18,7 +18,7 @@ const BookingTimeline: React.FC<BookingTimelineProps> = ({ currentStep }) => {
         {/* Progress line */}
         <div className="absolute top-0 left-0 h-1 bg-gray-200 w-full"></div>
         <div 
-          className="absolute top-0 left-0 h-1 bg-green-500 transition-all duration-300"
+          className="absolute top-0 left-0 h-1 bg-[var(--color-indigo-600)] transition-all duration-300"
           style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
         ></div>
 
@@ -29,7 +29,7 @@ const BookingTimeline: React.FC<BookingTimelineProps> = ({ currentStep }) => {
             <div className={`
               w-10 h-10 rounded-full flex items-center justify-center
               ${currentStep >= step.id 
-                ? 'bg-green-500 text-white' 
+                ? 'bg-[var(--color-indigo-600)] text-white' 
                 : 'bg-gray-200 text-gray-600'
               }
               transition-all duration-300
@@ -41,7 +41,7 @@ const BookingTimeline: React.FC<BookingTimelineProps> = ({ currentStep }) => {
             <div className={`
               mt-2 text-sm font-medium
               ${currentStep >= step.id 
-                ? 'text-green-500' 
+                ? 'text-[var(--color-indigo-600)]' 
                 : 'text-gray-600'
               }
             `}>
