@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
+import axiosInstance from "@/axiosInstance";
 
 interface SeatSelectionProps {
   movieTitle: string;
@@ -17,6 +18,15 @@ interface SelectedSeat {
   price: number;
 }
 
+interface SeatData {
+  id: number;
+  seatNumber: string;
+  seatTypeId: number;
+  isActive: boolean;
+  seatTypeName: string;
+  priceMultiplier: number;
+}
+
 const SeatSelection = ({
   movieTitle,
   theaterName,
@@ -27,7 +37,21 @@ const SeatSelection = ({
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [timeLeft, setTimeLeft] = useState({ minutes: 10, seconds: 0 });
   const [activeSummary, setActiveSummary] = useState(false);
+  const [seats, setSeats] = useState<SeatData[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchSeats = async () => {
+      try {
+        const response = await axiosInstance.get('/seats');
+        setSeats(response.data);
+      } catch (error) {
+        console.error('Error fetching seats:', error);
+      }
+    };
+
+    fetchSeats();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -90,6 +114,71 @@ const SeatSelection = ({
       .join(",");
     router.push(
       `/food-selection?movieTitle=${encodeURIComponent(movieTitle)}&theaterName=${encodeURIComponent(theaterName)}&showtime=${encodeURIComponent(showtime)}&date=${encodeURIComponent(date.toISOString())}&seats=${encodeURIComponent(seatsParam)}`
+    );
+  };
+
+  const getSeatType = (seatTypeId: number): 'standard' | 'vip' | 'couple' => {
+    if (seatTypeId === 1) return 'standard';
+    if (seatTypeId === 2) return 'vip';
+    if (seatTypeId === 3) return 'couple';
+    return 'standard';
+  };
+
+  const parseSeatNumber = (seatNumber: string) => {
+    const match = seatNumber.match(/^([A-Z]+)(\d+)$/i);
+    if (!match) return { row: '', number: 0 };
+    return { row: match[1].toUpperCase(), number: parseInt(match[2], 10) };
+  };
+
+  const renderSeatGrid = () => {
+    const rows: { [row: string]: SeatData[] } = {};
+    seats.forEach(seat => {
+      const { row } = parseSeatNumber(seat.seatNumber);
+      if (!rows[row]) rows[row] = [];
+      rows[row].push(seat);
+    });
+    const sortedRows = Object.keys(rows).sort((a, b) => a.localeCompare(b));
+    return (
+      <div className="overflow-x-auto">
+        <div className="min-w-[600px] px-4">
+          <div className="flex flex-col gap-1 text-center">
+            {sortedRows.map(row => {
+              const seatsInRow = rows[row].sort((a, b) => {
+                const na = parseSeatNumber(a.seatNumber).number;
+                const nb = parseSeatNumber(b.seatNumber).number;
+                return na - nb;
+              });
+              const seatElements = [];
+              for (let i = 0; i < seatsInRow.length; i++) {
+                const seat = seatsInRow[i];
+                const { row, number } = parseSeatNumber(seat.seatNumber);
+                const type = getSeatType(seat.seatTypeId);
+                if (type === 'couple') {
+                  seatElements.push(
+                    <div key={seat.id} className="h-8 flex items-center justify-center flex-[2_2_0%] max-w-[112px] min-w-[56px]">
+                      {renderSeat(row, number, type, !seat.isActive)}
+                    </div>
+                  );
+                  i++;
+                } else {
+                  seatElements.push(
+                    <div key={seat.id} className="h-8 flex items-center justify-center flex-1 min-w-[56px] max-w-[56px]">
+                      {renderSeat(row, number, type, !seat.isActive)}
+                    </div>
+                  );
+                }
+              }
+              return (
+                <div key={row} className="flex items-center gap-1 mb-1">
+                  <div className="w-8 flex-shrink-0 flex items-center justify-center text-gray-500 font-medium">{row}</div>
+                  <div className="flex flex-1 justify-between gap-1">{seatElements}</div>
+                  <div className="w-8 flex-shrink-0 flex items-center justify-center text-gray-500 font-medium">{row}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -266,82 +355,7 @@ const SeatSelection = ({
           </div>
           
           {/* Seats grid */}
-          <div className="overflow-x-auto">
-            <div className="min-w-[600px] px-4">
-              <div className="grid grid-cols-20 gap-1 text-center">
-                {/* Row headers */}
-                <div className="col-span-1 flex flex-col justify-between pt-1 pb-1">
-                  {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((row) => (
-                    <div key={row} className="h-8 flex items-center justify-center text-gray-500 font-medium">{row}</div>
-                  ))}
-                </div>
-                
-                {/* Seats grid */}
-                <div className="col-span-18 grid grid-cols-18 gap-1">
-                  {Array.from({ length: 11 }, (_, rowIndex) => (
-                    <>
-                      {Array.from({ length: 18 }, (_, seatIndex) => {
-                        const row = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'][rowIndex];
-                        const number = seatIndex + 1;
-                        
-                        if (rowIndex === 10) {
-                          if (seatIndex % 2 === 0 && seatIndex < 16) {
-                            return (
-                              <div
-                                key={`${rowIndex}-${seatIndex}`}
-                                className="h-8 col-span-2 flex items-center justify-center"
-                              >
-                                {renderSeat(row, number, 'couple')}
-                              </div>
-                            );
-                          } else if (seatIndex % 2 !== 0 || seatIndex >= 16) {
-                            return null;
-                          }
-                        }
-                        
-                        if ((rowIndex === 5 || rowIndex === 6 || rowIndex === 7) && (seatIndex >= 7 && seatIndex <= 9)) {
-                          return (
-                            <div
-                              key={`${rowIndex}-${seatIndex}`}
-                              className="h-8 flex items-center justify-center"
-                            >
-                              {renderSeat(row, number, 'standard', true)}
-                            </div>
-                          );
-                        }
-                        
-                        if (rowIndex >= 3 && rowIndex <= 8) {
-                          return (
-                            <div
-                              key={`${rowIndex}-${seatIndex}`}
-                              className="h-8 flex items-center justify-center"
-                            >
-                              {renderSeat(row, number, 'vip')}
-                            </div>
-                          );
-                        }
-                        
-                        return (
-                          <div
-                            key={`${rowIndex}-${seatIndex}`}
-                            className="h-8 flex items-center justify-center"
-                          >
-                            {renderSeat(row, number, 'standard')}
-                          </div>
-                        );
-                      })}
-                    </>
-                  ))}
-                </div>
-                
-                <div className="col-span-1 flex flex-col justify-between pt-1 pb-1">
-                  {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map((row) => (
-                    <div key={`right-${row}`} className="h-8 flex items-center justify-center text-gray-500 font-medium">{row}</div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {renderSeatGrid()}
 
           {/* Mobile continue button */}
           <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t z-10">

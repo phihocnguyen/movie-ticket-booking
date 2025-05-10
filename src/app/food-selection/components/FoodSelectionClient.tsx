@@ -1,8 +1,19 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import BookingTimeline from "../../movies/[id]/components/BookingTimeline";
-import { foodItems, FoodItem } from "@/data/foodItems";
+import axiosInstance from "@/axiosInstance";
+import Image from "next/image";
+
+interface FoodItem {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+  category: 'Snack' | 'Drinks' | 'Fast Food';
+}
 
 interface FoodSelectionClientProps {
   movieTitle: string;
@@ -27,10 +38,21 @@ const FoodSelectionClient: React.FC<FoodSelectionClientProps> = ({
   const router = useRouter();
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+
+  const fetchFoodItems = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get('/theater-food');
+      setFoodItems(response.data);
+    } catch (error) {
+      console.error('Error fetching food items:', error);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetchFoodItems();
+  }, [fetchFoodItems]);
 
   const handleQuantityChange = (item: FoodItem, change: number) => {
     setSelectedItems(prev => {
@@ -70,18 +92,20 @@ const FoodSelectionClient: React.FC<FoodSelectionClientProps> = ({
               {foodItems.map((item) => {
                 const selectedItem = selectedItems.find(i => i.id === item.id);
                 const quantity = selectedItem?.quantity || 0;
-
                 return (
                   <div
                     key={item.id}
                     className={`bg-white rounded-lg shadow-md p-4 transition-all
                       ${quantity > 0 ? 'ring-2 ring-[var(--color-indigo-600)]' : ''}`}
                   >
-                    <div className="aspect-video bg-gray-200 rounded-lg mb-4">
-                      {/* Image placeholder - replace with actual image */}
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        {item.name}
-                      </div>
+                    <div className="aspect-video bg-gray-200 rounded-lg mb-4 relative overflow-hidden">
+                      <Image 
+                        src={item.imageUrl} 
+                        alt={item.name} 
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
                     </div>
                     <h3 className="font-semibold text-lg">{item.name}</h3>
                     <p className="text-gray-600 text-sm mb-2">{item.description}</p>
@@ -157,6 +181,7 @@ const FoodSelectionClient: React.FC<FoodSelectionClientProps> = ({
                         .map(item => `${item.id}:${item.quantity}`)
                         .join(',');
                       params.set('food', foodItems);
+                      alert(foodItems);
                     }
                     router.push(`/payment?${params.toString()}`);
                   }}
@@ -173,4 +198,4 @@ const FoodSelectionClient: React.FC<FoodSelectionClientProps> = ({
   );
 };
 
-export default FoodSelectionClient; 
+export default FoodSelectionClient;
