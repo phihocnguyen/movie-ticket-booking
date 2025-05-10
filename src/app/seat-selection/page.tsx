@@ -15,7 +15,9 @@ const SeatSelectionPage = () => {
 
   return (
     <div className="container mx-auto px-4">
-      <BookingTimeline currentStep={2} />
+      <div className="py-16 z-10 relative">
+        <BookingTimeline currentStep={2} />
+      </div>
       <SeatSelection
         movieTitle={movieTitle}
         theaterName={theaterName}
