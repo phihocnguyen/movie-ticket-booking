@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
+import axiosInstance from '@/axiosInstance';
 
 interface Theater {
   id: string;
@@ -18,60 +19,43 @@ interface TheaterModalProps {
 }
 
 const TheaterModal: React.FC<TheaterModalProps> = ({ isOpen, onClose }) => {
-  const theaters: Theater[] = [
-    {
-      id: 'dong-da',
-      name: 'Đống Đa',
-      address: '890 Trần Hưng Đạo, Quận 5, Tp. Hồ Chí Minh',
-      logo: '/images/theaters/ddc.png'
-    },
-    {
-      id: 'beta-quang-trung',
-      name: 'Beta Quang Trung',
-      address: '645 Quang Trung, Phường 11, Quận Gò Vấp, Thành phố Hồ Chí Minh',
-      logo: '/images/theaters/beta.png'
-    },
-    {
-      id: 'beta-tran-quang-khai',
-      name: 'Beta Trần Quang Khải',
-      address: 'Tầng 2 & 3, Tòa nhà IMC, 62 Đường Trần Quang Khải, Phường Tân Định, Quận 1, TP. Hồ Chí Minh',
-      logo: '/images/theaters/beta.png'
-    },
-    {
-      id: 'beta-ung-van-khiem',
-      name: 'Beta Ung Văn Khiêm',
-      address: 'Tầng 1, tòa nhà PAX SKY, 26 Ung Văn Khiêm, phường 25, Quận Bình Thạnh, Thành phố Hồ Chí Minh, Việt Nam',
-      logo: '/images/theaters/beta.png'
-    },
-    {
-      id: 'cinestar-hai-ba-trung',
-      name: 'Cinestar Hai Bà Trưng',
-      address: '135 Hai Bà Trưng, P. Bến Nghé, Q.1, Tp. Hồ Chí Minh',
-      logo: '/images/theaters/cinestar.png',
-      distance: '2.5km'
-    },
-    {
-      id: 'cinestar-quoc-thanh',
-      name: 'Cinestar Quốc Thanh',
-      address: '271 Nguyễn Trãi, P. Nguyễn Cư Trinh, Q.1, Tp. Hồ Chí Minh',
-      logo: '/images/theaters/cinestar.png',
-      distance: '3.1km'
-    },
-    {
-      id: 'lotte-ung-van-khiem',
-      name: 'Lotte Ung Văn Khiêm',
-      address: 'Tầng Trệt, TTTM TTC Plaza, Số 26, Đường Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP.HCM',
-      logo: '/images/theaters/lotte.png',
-      distance: '263m'
-    },
-    {
-      id: 'cgv-saigonres-nguyen-xi',
-      name: 'CGV Saigonres Nguyễn Xí',
-      address: 'Tầng 4-5, Saigonres Plaza, 79/81 Nguyễn Xí, P 26, Q Bình Thạnh, Tp. Hồ Chí Minh',
-      logo: '/images/theaters/cgv.png',
-      distance: '915m'
+  const [theaters, setTheaters] = useState<Theater[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const theaterLogos: Record<string, string> = {
+    'CGV': 'https://banner2.cleanpng.com/20181203/orv/kisspng-cj-cgv-vietnam-cinema-cj-group-film-1713914319903.webp',
+    'Beta': 'https://theme.hstatic.net/200000727463/1001067697/14/share_fb_home.jpg?v=210',
+    'Cinestar': 'https://tenpack.com.vn/wp-content/uploads/2016/02/cinestar-logo.png',
+    'Lotte': 'https://play-lh.googleusercontent.com/3JrdBBVW45zS25P_U05KxhfiaMbfvN-iUccLTANtBZYANtWP8KgsRaVeMbn0ghlyvSDI'
+  };
+
+  useEffect(() => {
+    const fetchTheaters = async () => {
+      try {
+        const response = await axiosInstance.get('/theaters');
+        const theatersData = response.data.map((theater: any) => {
+          let logoKey = Object.keys(theaterLogos).find(key => theater.name.includes(key));
+          let logo = logoKey ? theaterLogos[logoKey] : '';
+
+          return {
+            id: theater.id.toString(),
+            name: theater.name,
+            address: theater.address,
+            logo: logo
+          };
+        });
+        setTheaters(theatersData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching theaters:', error);
+        setLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchTheaters();
     }
-  ];
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -100,37 +84,53 @@ const TheaterModal: React.FC<TheaterModalProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
             
-            <div className="divide-y divide-gray-100">
-              {theaters.map((theater) => (
-                <Link 
-                  key={theater.id} 
-                  href={`/theaters/${theater.id}`} 
-                  className="block py-4 px-2 hover:bg-blue-50/30 transition-all group cursor-pointer"
-                  onClick={handleTheaterSelect}
-                >
-                  <div className="flex items-start">
-                    <div className="w-14 h-14 flex-shrink-0 overflow-hidden mr-4 rounded-full">
-                      {/* Use logo placeholder for now */}
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                        {theater.name.charAt(0)}
+            {loading ? (
+              <div className="py-10 text-center">
+                <p>Đang tải danh sách rạp...</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {theaters.map((theater) => (
+                  <Link 
+                    key={theater.id} 
+                    href={`/theaters/${theater.id}`} 
+                    className="block py-4 px-2 hover:bg-blue-50/30 transition-all group cursor-pointer"
+                    onClick={handleTheaterSelect}
+                  >
+                    <div className="flex items-start">
+                      <div className="w-14 h-14 flex-shrink-0 overflow-hidden mr-4 rounded-full">
+                        {theater.logo ? (
+                          <div className="w-full h-full relative">
+                            <Image 
+                              src={theater.logo} 
+                              alt={theater.name}
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                            {theater.name.charAt(0)}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors text-lg">{theater.name}</h3>
-                      <div className="flex items-center mt-1 text-gray-500">
-                        <MapPin size={14} className="mr-1 text-gray-400" />
-                        <p className="text-sm text-gray-500">{theater.address}</p>
-                      </div>
-                      {theater.distance && (
-                        <div className="mt-1 text-xs text-gray-400">
-                          {theater.distance}
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors text-lg">{theater.name}</h3>
+                        <div className="flex items-center mt-1 text-gray-500">
+                          <MapPin size={14} className="mr-1 text-gray-400" />
+                          <p className="text-sm text-gray-500">{theater.address}</p>
                         </div>
-                      )}
+                        {theater.distance && (
+                          <div className="mt-1 text-xs text-gray-400">
+                            {theater.distance}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
