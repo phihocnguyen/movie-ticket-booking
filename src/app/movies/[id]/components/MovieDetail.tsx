@@ -145,21 +145,42 @@ export default function MovieDetail({ movie }: MovieDetailProps) {
                   <FaUserTie className="mr-3 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-400">Đạo diễn</p>
-                    <p className="font-medium">{movie.director || 'Chưa cập nhật'}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {(movie.director ? movie.director.split(',') : []).map((d, idx) => {
+                        const name = d.trim();
+                        return name ? (
+                          <span key={idx} className="bg-[#23232b] text-white px-4 py-1 rounded-lg text-sm font-medium">{name}</span>
+                        ) : null;
+                      })}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <FaUserFriends className="mr-3 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-400">Diễn viên</p>
-                    <p className="font-medium">{movie.actor || 'Chưa cập nhật'}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {(movie.actor ? movie.actor.split(',') : []).map((a, idx) => {
+                        const name = a.trim();
+                        return name ? (
+                          <span key={idx} className="bg-[#23232b] text-white px-4 py-1 rounded-lg text-sm font-medium">{name}</span>
+                        ) : null;
+                      })}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <FaTags className="mr-3 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-400">Thể loại</p>
-                    <p className="font-medium">{movie.genre || 'Chưa cập nhật'}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {(movie.genre ? movie.genre.split(',') : []).map((g, idx) => {
+                        const name = g.trim();
+                        return name ? (
+                          <span key={idx} className="bg-[#23232b] text-white px-4 py-1 rounded-lg text-sm font-medium">{name}</span>
+                        ) : null;
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
