@@ -41,6 +41,7 @@ const MoviePoster: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [direction, setDirection] = useState<number>(0);
   const [isFavorited, setIsFavorited] = useState<boolean[]>([]);
+  const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
     getRandomMovies().then((data) => {
@@ -205,6 +206,10 @@ const MoviePoster: React.FC = () => {
     return stars;
   };
 
+  const getYouTubeEmbedUrl = (trailerUrl: string) => {
+    return `https://www.youtube.com/embed/${trailerUrl}?autoplay=1&title=1`
+  };
+
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
@@ -212,7 +217,11 @@ const MoviePoster: React.FC = () => {
         <div className="absolute w-3/4 h-3/4 -bottom-1/4 -right-1/4 rounded-full bg-blue-600/20 blur-3xl"></div>
       </div>
       
-      <div className="relative w-full h-full overflow-hidden">
+      <div 
+        className="relative w-full h-full overflow-hidden cursor-pointer"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent z-10" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-black/10 to-black/60 z-10" />
@@ -239,19 +248,28 @@ const MoviePoster: React.FC = () => {
             }}
             className="relative w-full h-full"
           >
-            <Image 
-              src={currentMovie.backdropUrl}
-              alt={currentMovie.title}
-              fill
-              priority
-              className="object-cover object-center"
-              style={{ filter: 'brightness(0.95) contrast(1.05)' }}
-              unoptimized
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/api/placeholder/1200/600';
-              }}
-            />
+            {isHovering && currentMovie.trailerUrl ? (
+              <iframe
+                src={getYouTubeEmbedUrl(currentMovie.trailerUrl)}
+                className="absolute inset-0 w-full h-full object-cover"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <Image 
+                src={currentMovie.backdropUrl}
+                alt={currentMovie.title}
+                fill
+                priority
+                className="object-cover object-center"
+                style={{ filter: 'brightness(0.95) contrast(1.05)' }}
+                unoptimized
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/api/placeholder/1200/600';
+                }}
+              />
+            )}
             
             <div 
               className="absolute inset-0 opacity-[0.08] pointer-events-none mix-blend-overlay" 

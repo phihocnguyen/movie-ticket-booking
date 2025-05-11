@@ -17,6 +17,8 @@ const TrailerModal: React.FC<TrailerModalProps> = ({ isOpen, onClose, videoId })
       }
     };
 
+    console.log(videoId);
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
