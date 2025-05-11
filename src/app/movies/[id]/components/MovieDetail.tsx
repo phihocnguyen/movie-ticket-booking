@@ -24,12 +24,26 @@ export interface Movie {
   backdropUrl?: string;
 }
 
+interface Showtime {
+  id: string;
+  movieId: string;
+  theaterId: string;  
+  screenId: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+  screenName: string;
+  theaterName: string;
+  theaterAddress: string;
+}
+
 interface MovieDetailProps {
   movie: Movie;
 }
 
 export default function MovieDetail({ movie }: MovieDetailProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
   const defaultImage = 'https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg';
   
   const renderStars = () => {
@@ -37,9 +51,9 @@ export default function MovieDetail({ movie }: MovieDetailProps) {
     const rating = movie.rating || 0;
     
     for (let i = 1; i <= 5; i++) {
-      if (i <= rating) {
+      if (i <= rating / 2) {
         stars.push(<FaStar key={i} className="text-yellow-400" />);
-      } else if (i - 0.5 <= rating) {
+      } else if (i - 0.5 <= rating / 2) {
         stars.push(<FaStar key={i} className="text-yellow-200" />);
       } else {
         stars.push(<FaStar key={i} className="text-gray-300" />);
@@ -51,7 +65,7 @@ export default function MovieDetail({ movie }: MovieDetailProps) {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="relative w-full h-[600px] overflow-hidden">
+      <div className="relative w-full h-[700px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-gray-900/40 z-10" />
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-gray-900 to-transparent z-10" />
         
@@ -106,15 +120,15 @@ export default function MovieDetail({ movie }: MovieDetailProps) {
                   <div className="flex mr-1">
                     {renderStars()}
                   </div>
-                  <span className="font-semibold">{movie.rating}/5</span>
+                  <span className="font-semibold">{movie.rating}/10</span>
                 </div>
                 <div className="flex items-center bg-gray-800/80 px-3 py-1 rounded-full">
                   <FaClock className="mr-2 text-gray-300" />
-                  <span>{movie.duration}</span>
+                  <span>{movie.duration} Phút</span>
                 </div>
                 <div className="flex items-center bg-gray-800/80 px-3 py-1 rounded-full">
                   <FaCalendarAlt className="mr-2 text-gray-300" />
-                  <span>{movie.releaseDate}</span>
+                  <span>Ngày ra mắt: {movie.releaseDate}</span>
                 </div>
               </div>
               <div className="bg-gray-800/70 backdrop-blur-sm p-4 rounded-lg mb-6 transform transition hover:bg-gray-800/90">

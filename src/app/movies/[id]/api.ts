@@ -63,3 +63,14 @@ export async function getTopRatedMovies() {
     throw error;
   }
 }
+
+export async function getShowtimesByMovieId(movieId: string) {
+  try {
+    const response = await axiosInstance.get(`/showtimes/movie/${movieId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching showtimes:', error);
+    throw error;
+  }
+}
+

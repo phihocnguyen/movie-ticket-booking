@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react';
 import axiosInstance from '@/axiosInstance';
+import Link from 'next/link';
 
 interface Movie {
   id: number;
@@ -118,7 +119,8 @@ export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
           const originalTitle = movie.originalTitle || movie.title;
           movie = addRandomSubtitleAndDubbing(movie);
           return (
-            <div 
+            <Link 
+              href={`/movies/${movie.id}`}
               key={movie.id} 
               className="flex-none w-56 relative"
             >
@@ -151,7 +153,7 @@ export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
               </div>
               <h3 className="text-lg font-medium mt-2 truncate">{displayTitle}</h3>
               <p className="text-sm text-gray-400 truncate">{originalTitle}</p>
-            </div>
+            </Link>
           );
         })}
       </div>

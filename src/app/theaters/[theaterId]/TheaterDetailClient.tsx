@@ -398,26 +398,8 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
                             <span>8.4/10</span>
                           </div>
                         </div>
-                        
-                        <div className="flex gap-3">
-                          <Link 
-                            href="#" 
-                            className="text-sm flex items-center gap-1 px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-                          >
-                            <Play size={14} />
-                            Trailer
-                          </Link>
-                          <Link 
-                            href="#" 
-                            className="text-sm flex items-center gap-1 px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-                          >
-                            <Info size={14} />
-                            Chi tiết
-                          </Link>
-                        </div>
                       </div>
                       
-                      {/* Expandable indicator */}
                       <div className="self-center">
                         <div className={`transform transition-transform ${selectedMovie === movie.id ? 'rotate-180' : ''}`}>
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -467,8 +449,6 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
         {activeTab === 'info' && (
           <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
             <h2 className="text-2xl font-bold mb-6 pb-3 border-b border-gray-700">Thông tin chi tiết</h2>
-            
-            {/* Theater info grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div>
                 <h3 className="text-lg font-medium mb-4 flex items-center">
@@ -488,16 +468,6 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
                     <Mail size={16} className="mr-2 text-gray-400 flex-shrink-0" />
                     <span>{theater.email}</span>
                   </p>
-                </div>
-                
-                <div className="mt-6">
-                  <Link 
-                    href="#map" 
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${brandColors.button} transition-colors`}
-                  >
-                    <MapPin size={16} />
-                    Xem bản đồ
-                  </Link>
                 </div>
               </div>
               
@@ -527,7 +497,6 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
               </div>
             </div>
             
-            {/* Features section */}
             {theater.features && theater.features.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-lg font-medium mb-4 flex items-center">
@@ -550,14 +519,6 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
               </div>
             )}
             
-            {/* Map placeholder */}
-            <div id="map" className="rounded-lg overflow-hidden h-64 bg-gray-700 mb-6 relative">
-              <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                Bản đồ địa điểm
-              </div>
-            </div>
-            
-            {/* Additional info */}
             <div className="text-gray-400 text-sm border-t border-gray-700 pt-4 mt-6">
               <p>Vui lòng liên hệ rạp để biết thêm chi tiết về suất chiếu và dịch vụ. Lịch chiếu có thể thay đổi mà không báo trước.</p>
             </div>
@@ -565,7 +526,6 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
         )}
       </div>
       
-      {/* Footer with cinema chain branding */}
       <footer className="bg-black py-8 border-t border-gray-800 mt-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
