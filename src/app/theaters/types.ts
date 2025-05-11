@@ -1,11 +1,21 @@
 export interface TheaterData {
-  id: string;
+  id: number;
   name: string;
   address: string;
-  description: string;
-  features: string[];
-  logoUrl: string;
-  bannerUrl?: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
+  phoneNumber: string;
+  email: string;
+  isActive: boolean;
+  openingTime: [number, number];
+  closingTime: [number, number];
+  totalScreens: number;
+  createdAt: string;
+  updatedAt: string;
+  features?: string[];
+  logoUrl?: string;
 }
 
 export interface Movie {
