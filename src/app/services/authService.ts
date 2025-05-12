@@ -27,6 +27,8 @@ interface UserData {
 
 const API_URL = 'http://localhost:8080/api';
 
+let authStateChangeCallback: (() => void) | null = null;
+
 export const authService = {
   async register(data: RegisterData): Promise<void> {
     try {
@@ -71,6 +73,11 @@ export const authService = {
       localStorage.setItem('role', loginData.role);
       localStorage.setItem('fullName', loginData.fullName);
 
+      // Notify about auth state change
+      if (authStateChangeCallback) {
+        authStateChangeCallback();
+      }
+
       return loginData;
     } catch (error) {
       console.error('Login error:', error);
@@ -83,6 +90,11 @@ export const authService = {
     localStorage.removeItem('username');
     localStorage.removeItem('role');
     localStorage.removeItem('fullName');
+
+    // Notify about auth state change
+    if (authStateChangeCallback) {
+      authStateChangeCallback();
+    }
   },
 
   getToken(): string | null {
@@ -116,5 +128,13 @@ export const authService = {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  },
+
+  onAuthStateChange(callback: () => void): void {
+    authStateChangeCallback = callback;
+  },
+
+  removeAuthStateChangeListener(): void {
+    authStateChangeCallback = null;
   }
 }; 
