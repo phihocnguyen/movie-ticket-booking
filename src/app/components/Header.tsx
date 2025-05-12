@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Search, Menu, X, User, Bell, ShoppingCart, Film, Ticket, Settings, LogOut } from 'lucide-react';
 import TheaterModal from './TheaterModal';
 import { authService } from '@/app/services/authService';
+import { useAuth } from '../context/AuthContext';
+import NotificationModal from './NotificationModal';
 
 interface Movie {
   id: number;
@@ -40,9 +42,11 @@ const Header: React.FC = () => {
                          pathname?.includes('/food-selection') || 
                          pathname?.includes('/payment') || 
                          pathname?.includes('/booking-success');
+  const { userData, isAuthenticated, updateAuthState } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(3); // Mock unread count
 
   useEffect(() => {
     const handleScroll = () => {
@@ -145,24 +149,10 @@ const Header: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const data = authService.getUserData();
-      setUserData(data);
-    };
-
-    // Check auth state on mount
-    checkAuth();
-
-    // Listen for storage changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'token' || e.key === 'username' || e.key === 'role' || e.key === 'fullName') {
-        checkAuth();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    // Register auth state change listener
+    authService.onAuthStateChange(updateAuthState);
+    return () => authService.removeAuthStateChangeListener();
+  }, [updateAuthState]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -178,6 +168,10 @@ const Header: React.FC = () => {
 
   const closeTheaterModal = () => {
     setIsTheaterModalOpen(false);
+  };
+
+  const toggleNotificationModal = () => {
+    setIsNotificationModalOpen(!isNotificationModalOpen);
   };
 
   return (
@@ -341,14 +335,18 @@ const Header: React.FC = () => {
                 <span className="absolute -bottom-1 left-1/2 w-6 h-0.5 bg-indigo-500 transform -translate-x-1/2 scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
               </Link>
               
-              <Link 
-                href="/notifications" 
+              <button 
+                onClick={toggleNotificationModal}
                 className="text-white hover:text-indigo-500 transition-colors duration-300 relative hidden md:block group"
               >
                 <Bell size={20} className="group-hover:scale-110 transition-transform duration-300" />
-                <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
                 <span className="absolute -bottom-1 left-1/2 w-6 h-0.5 bg-indigo-500 transform -translate-x-1/2 scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
-              </Link>
+              </button>
               
               <div className="hidden md:block" ref={userMenuRef}>
                 {userData ? (
@@ -381,7 +379,7 @@ const Header: React.FC = () => {
                           <button
                             onClick={() => {
                               authService.logout();
-                              setUserData(null);
+                              updateAuthState();
                               setIsUserMenuOpen(false);
                             }}
                             className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-indigo-600/20 hover:text-white transition-colors"
@@ -580,7 +578,7 @@ const Header: React.FC = () => {
                           <button
                             onClick={() => {
                               authService.logout();
-                              setUserData(null);
+                              updateAuthState();
                               setIsUserMenuOpen(false);
                             }}
                             className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-indigo-600/20 hover:text-white transition-colors"
@@ -608,6 +606,10 @@ const Header: React.FC = () => {
       </header>
 
       <TheaterModal isOpen={isTheaterModalOpen} onClose={closeTheaterModal} />
+      <NotificationModal 
+        isOpen={isNotificationModalOpen} 
+        onClose={() => setIsNotificationModalOpen(false)} 
+      />
     </>
   );
 };
