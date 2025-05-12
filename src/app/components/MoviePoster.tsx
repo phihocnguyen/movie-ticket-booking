@@ -207,7 +207,7 @@ const MoviePoster: React.FC = () => {
   };
 
   const getYouTubeEmbedUrl = (trailerUrl: string) => {
-    return `https://www.youtube.com/embed/${trailerUrl}?autoplay=1&title=1`
+    return `https://www.youtube.com/embed/${trailerUrl}?autoplay=1`
   };
 
   return (

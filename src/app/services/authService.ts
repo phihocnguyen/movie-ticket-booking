@@ -1,0 +1,120 @@
+interface RegisterData {
+  username: string;
+  password: string;
+  email: string;
+  phoneNumber: string;
+  fullName: string;
+  dateOfBirth: string;
+}
+
+interface LoginData {
+  username: string;
+  password: string;
+}
+
+interface LoginResponse {
+  token: string;
+  username: string;
+  role: string;
+  fullName: string;
+}
+
+interface UserData {
+  username: string;
+  role: string;
+  fullName: string;
+}
+
+const API_URL = 'http://localhost:8080/api';
+
+export const authService = {
+  async register(data: RegisterData): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  },
+
+  async login(data: LoginData): Promise<LoginResponse> {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+
+      const loginData: LoginResponse = await response.json();
+      
+      // Store the token and user data in localStorage
+      localStorage.setItem('token', loginData.token);
+      localStorage.setItem('username', loginData.username);
+      localStorage.setItem('role', loginData.role);
+      localStorage.setItem('fullName', loginData.fullName);
+
+      return loginData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('role');
+    localStorage.removeItem('fullName');
+  },
+
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  },
+
+  getUserData(): UserData | null {
+    const username = localStorage.getItem('username');
+    const role = localStorage.getItem('role');
+    const fullName = localStorage.getItem('fullName');
+
+    if (!username || !role || !fullName) {
+      return null;
+    }
+
+    return {
+      username,
+      role,
+      fullName
+    };
+  },
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  },
+
+  getInitials(fullName: string): string {
+    return fullName
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+}; 

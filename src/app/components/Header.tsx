@@ -2,8 +2,9 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Menu, X, User, Bell, ShoppingCart, Film, Ticket } from 'lucide-react';
+import { Search, Menu, X, User, Bell, ShoppingCart, Film, Ticket, Settings, LogOut } from 'lucide-react';
 import TheaterModal from './TheaterModal';
+import { authService } from '@/app/services/authService';
 
 interface Movie {
   id: number;
@@ -14,6 +15,12 @@ interface Movie {
   year?: string;
   duration?: string;
   episode?: string;
+}
+
+interface UserData {
+  username: string;
+  role: string;
+  fullName: string;
 }
 
 const Header: React.FC = () => {
@@ -33,6 +40,9 @@ const Header: React.FC = () => {
                          pathname?.includes('/food-selection') || 
                          pathname?.includes('/payment') || 
                          pathname?.includes('/booking-success');
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -122,6 +132,37 @@ const Header: React.FC = () => {
 
     return () => clearTimeout(handler);
   }, [searchValue, isSearchOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const data = authService.getUserData();
+      setUserData(data);
+    };
+
+    // Check auth state on mount
+    checkAuth();
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' || e.key === 'username' || e.key === 'role' || e.key === 'fullName') {
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -309,14 +350,58 @@ const Header: React.FC = () => {
                 <span className="absolute -bottom-1 left-1/2 w-6 h-0.5 bg-indigo-500 transform -translate-x-1/2 scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
               </Link>
               
-              <div className="hidden md:block">
-                <Link 
-                  href="/login" 
-                  className="flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-700 w-10 h-10 text-white transition-all duration-300 shadow-md hover:shadow-indigo-500/50 hover:scale-105 group"
-                  title="Đăng nhập"
-                >
-                  <User size={20} className="group-hover:scale-110 transition-transform duration-300" />
-                </Link>
+              <div className="hidden md:block" ref={userMenuRef}>
+                {userData ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                      className="flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-700 w-10 h-10 text-white transition-all duration-300 shadow-md hover:shadow-indigo-500/50 hover:scale-105 group"
+                      title={userData.fullName}
+                    >
+                      <span className="text-sm font-medium">
+                        {authService.getInitials(userData.fullName)}
+                      </span>
+                    </button>
+
+                    {isUserMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-gradient-to-b from-black/95 to-gray-900/95 rounded-lg shadow-xl shadow-black/50 border border-gray-800 overflow-hidden z-50">
+                        <div className="p-3 border-b border-gray-800">
+                          <div className="text-white font-medium">{userData.fullName}</div>
+                          <div className="text-gray-400 text-sm">{userData.role}</div>
+                        </div>
+                        <div className="py-1">
+                          <Link
+                            href="/settings"
+                            className="flex items-center px-4 py-2 text-gray-300 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <Settings size={16} className="mr-2" />
+                            Settings
+                          </Link>
+                          <button
+                            onClick={() => {
+                              authService.logout();
+                              setUserData(null);
+                              setIsUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                          >
+                            <LogOut size={16} className="mr-2" />
+                            Logout
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link 
+                    href="/login" 
+                    className="flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-700 w-10 h-10 text-white transition-all duration-300 shadow-md hover:shadow-indigo-500/50 hover:scale-105 group"
+                    title="Đăng nhập"
+                  >
+                    <User size={20} className="group-hover:scale-110 transition-transform duration-300" />
+                  </Link>
+                )}
               </div>
               
               <button 
@@ -465,13 +550,57 @@ const Header: React.FC = () => {
               </Link>
               
               <div className="flex items-center pt-3">
-                <Link 
-                  href="/login" 
-                  className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white transition-all duration-300 shadow-lg hover:shadow-indigo-500/50 hover:scale-105 mx-auto"
-                  title="Đăng nhập"
-                >
-                  <User size={24} />
-                </Link>
+                {userData ? (
+                  <div className="relative mx-auto">
+                    <button
+                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                      className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white transition-all duration-300 shadow-lg hover:shadow-indigo-500/50 hover:scale-105"
+                      title={userData.fullName}
+                    >
+                      <span className="text-base font-medium">
+                        {authService.getInitials(userData.fullName)}
+                      </span>
+                    </button>
+
+                    {isUserMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-gradient-to-b from-black/95 to-gray-900/95 rounded-lg shadow-xl shadow-black/50 border border-gray-800 overflow-hidden z-50">
+                        <div className="p-3 border-b border-gray-800">
+                          <div className="text-white font-medium">{userData.fullName}</div>
+                          <div className="text-gray-400 text-sm">{userData.role}</div>
+                        </div>
+                        <div className="py-1">
+                          <Link
+                            href="/settings"
+                            className="flex items-center px-4 py-2 text-gray-300 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <Settings size={16} className="mr-2" />
+                            Settings
+                          </Link>
+                          <button
+                            onClick={() => {
+                              authService.logout();
+                              setUserData(null);
+                              setIsUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                          >
+                            <LogOut size={16} className="mr-2" />
+                            Logout
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link 
+                    href="/login" 
+                    className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white transition-all duration-300 shadow-lg hover:shadow-indigo-500/50 hover:scale-105 mx-auto"
+                    title="Đăng nhập"
+                  >
+                    <User size={24} />
+                  </Link>
+                )}
               </div>
             </nav>
           </div>
