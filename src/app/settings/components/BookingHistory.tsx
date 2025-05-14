@@ -3,85 +3,73 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Ticket, Calendar, Clock, MapPin, Users, Download, Eye } from 'lucide-react';
-import { authService } from '../../services/authService';
+import axiosInstance from '@/axiosInstance';
 
-interface Booking {
-  id: string;
-  movieTitle: string;
-  moviePoster: string;
-  theaterName: string;
-  showTime: string;
-  showDate: string;
-  seats: string[];
-  totalAmount: number;
-  status: 'upcoming' | 'completed' | 'cancelled';
-  bookingDate: string;
+interface BookingSeat {
+  seatId: number;
+  price: number;
+  seatName: string;
+  seatType: string;
 }
 
-// Mock data for visualization
-const mockBookings: Booking[] = [
-  {
-    id: '1',
-    movieTitle: 'Inception',
-    moviePoster: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-    theaterName: 'CGV Cinemas Central Park',
-    showTime: '19:30',
-    showDate: '2024-03-20',
-    seats: ['A12', 'A13'],
-    totalAmount: 24.99,
-    status: 'upcoming',
-    bookingDate: '2024-03-15',
-  },
-  {
-    id: '2',
-    movieTitle: 'The Dark Knight',
-    moviePoster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
-    theaterName: 'BHD Star Bitexco',
-    showTime: '20:00',
-    showDate: '2024-03-18',
-    seats: ['E8'],
-    totalAmount: 12.99,
-    status: 'completed',
-    bookingDate: '2024-03-10',
-  },
-  {
-    id: '3',
-    movieTitle: 'Interstellar',
-    moviePoster: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-    theaterName: 'Galaxy Cinema Nguyen Du',
-    showTime: '21:15',
-    showDate: '2024-03-22',
-    seats: ['C5', 'C6', 'C7'],
-    totalAmount: 36.99,
-    status: 'cancelled',
-    bookingDate: '2024-03-12',
-  },
-];
+interface BookingFood {
+  foodInventoryId: number;
+  quantity: number;
+  price: number;
+  foodName: string;
+}
+
+interface Showtime {
+  id: number;
+  movieId: number;
+  theaterId: number;
+  screenId: number;
+  startTime: string;
+  endTime: string;
+  price: number;
+  isActive: boolean;
+  screenName: string;
+  movieTitle: string;
+  theaterName: string;
+  theaterAddress: string;
+}
+
+interface Booking {
+  id: number;
+  userId: number;
+  showtimeId: number;
+  bookingTime: string;
+  totalAmount: number;
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  isActive: boolean;
+  bookingSeats: BookingSeat[];
+  bookingFoods: BookingFood[];
+  createdAt: string;
+  updatedAt: string;
+  showtime: Showtime;
+  moviePosterUrl: string;
+}
 
 export default function BookingHistory() {
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings); // Using mock data instead of API call
-  const [loading, setLoading] = useState(false); // Set to false since we're using mock data
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Comment out the useEffect since we're using mock data
-  /*
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/bookings', {
-          headers: {
-            'Authorization': `Bearer ${authService.getToken()}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setBookings(data);
-        } else {
-          setError('Failed to fetch bookings');
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          setError('User not authenticated');
+          setLoading(false);
+          return;
         }
+
+        const response = await axiosInstance.get(`/bookings/user/${userId}`);
+        setBookings(response.data);
       } catch (error) {
         setError('An error occurred while fetching bookings');
+        console.error('Error fetching bookings:', error);
       } finally {
         setLoading(false);
       }
@@ -89,15 +77,14 @@ export default function BookingHistory() {
 
     fetchBookings();
   }, []);
-  */
 
   const getStatusColor = (status: Booking['status']) => {
     switch (status) {
-      case 'upcoming':
+      case 'PENDING':
         return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'cancelled':
+      case 'CANCELLED':
         return 'bg-red-500/20 text-red-400 border-red-500/50';
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
@@ -146,29 +133,27 @@ export default function BookingHistory() {
         >
           <div className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Movie Poster */}
               <div className="w-full md:w-48 h-64 relative rounded-lg overflow-hidden">
                 <img
-                  src={booking.moviePoster}
-                  alt={booking.movieTitle}
+                  src={`${booking.moviePosterUrl}`}
+                  alt={booking.showtime.movieTitle}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               </div>
 
-              {/* Booking Details */}
               <div className="flex-1 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-xl font-bold text-white">{booking.movieTitle}</h3>
+                    <h3 className="text-xl font-bold text-white">{booking.showtime.movieTitle}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`px-3 py-1 rounded-full text-sm border ${getStatusColor(booking.status)}`}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        {booking.status}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">${booking.totalAmount}</p>
+                    <p className="text-2xl font-bold text-white">{booking.totalAmount.toLocaleString('vi-VN')}đ</p>
                     <p className="text-sm text-gray-400">Total Amount</p>
                   </div>
                 </div>
@@ -176,21 +161,35 @@ export default function BookingHistory() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.showDate}</span>
+                    <span className="text-gray-300">{booking.showtime.startTime.split(' ')[0]}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.showTime}</span>
+                    <span className="text-gray-300">{booking.showtime.startTime.split(' ')[1]}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.theaterName}</span>
+                    <span className="text-gray-300">{booking.showtime.theaterName}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.seats.join(', ')}</span>
+                    <span className="text-gray-300">{booking.bookingSeats.map(seat => seat.seatName).join(', ')}</span>
                   </div>
                 </div>
+
+                {booking.bookingFoods.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-400 mb-2">Food & Drinks</h4>
+                    <div className="space-y-2">
+                      {booking.bookingFoods.map((food, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="text-gray-300">{food.foodName} x{food.quantity}</span>
+                          <span className="text-gray-300">{(food.price * food.quantity).toLocaleString('vi-VN')}đ</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-4">
                   <button
