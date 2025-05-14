@@ -178,10 +178,9 @@ const FoodSelectionClient: React.FC<FoodSelectionClientProps> = ({
                     const params = new URLSearchParams(searchParams);
                     if (selectedItems.length > 0) {
                       const foodItems = selectedItems
-                        .map(item => `${item.id}:${item.quantity}`)
+                        .map(item => `${item.id}:${encodeURIComponent(item.name)}:${item.quantity}`)
                         .join(',');
                       params.set('food', foodItems);
-                      alert(foodItems);
                     }
                     router.push(`/payment?${params.toString()}`);
                   }}

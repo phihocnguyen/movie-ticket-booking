@@ -56,6 +56,12 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({ movieId, movieTitle }) => 
   }, [movieId]);
 
   const formatTime = (dateTimeStr: string) => {
+    console.log(dateTimeStr);
+    if (dateTimeStr.includes('/')) {
+      const [datePart, timePart] = dateTimeStr.split(' ');
+      return timePart;
+    }
+    
     const date = new Date(dateTimeStr);
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   };
@@ -95,7 +101,9 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({ movieId, movieTitle }) => 
     const params = new URLSearchParams({
       movieTitle,
       theaterName: showtime.theaterName,
+      showTimeId: showtime.id.toString(), 
       showtime: showtime.startTime,
+      screenId: showtime.screenId.toString(),
       date: selectedDate.toISOString(),
     });
     router.push(`/seat-selection?${params.toString()}`);

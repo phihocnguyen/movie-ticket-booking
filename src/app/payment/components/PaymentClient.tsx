@@ -3,57 +3,137 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import BookingTimeline from "../../movies/[id]/components/BookingTimeline";
 import { paymentMethods, PaymentMethod } from "@/data/paymentMethods";
-import { foodItems } from "@/data/foodItems";
-
-interface PaymentClientProps {
-  movieTitle: string;
-  theaterName: string;
-  showtime: string;
-  dateStr: string;
-  selectedSeats: string[];
-  selectedFood: string[];
-}
+import axiosInstance from "@/axiosInstance";
+import { decodePaymentParams } from "@/app/utils/searchParams";
 
 interface FoodOrder {
   id: string;
+  name: string;
   quantity: number;
+  price: number;
 }
 
-const PaymentClient: React.FC<PaymentClientProps> = ({
-  movieTitle,
-  theaterName,
-  showtime,
-  dateStr,
-  selectedSeats,
-  selectedFood,
-}) => {
+interface FoodItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  category: 'Snack' | 'Drinks' | 'Fast Food';
+}
+
+const PaymentClient = () => {
   const router = useRouter();
+  const [userId, setUserId] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [mounted, setMounted] = useState(false);
-
+  const [bookingData, setBookingData] = useState<{
+    movieTitle: string;
+    theaterName: string;
+    showtime: string;
+    date: string;
+    seats: { seatId: number; seatName: string }[];
+    food: Record<string, { id: string; name: string; quantity: number }>;
+  } | null>(null);
+  const [foodOrders, setFoodOrders] = useState<FoodOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const showtimeId = searchParams.get('showtimeId'); 
   useEffect(() => {
     setMounted(true);
+    setUserId(localStorage.getItem('userId') || "");
   }, []);
 
-  // Calculate ticket price (mock price)
-  const ticketPrice = selectedSeats.length * 75000;
+  useEffect(() => {
+    const url = window.location.href; 
+    const params = decodePaymentParams(url);
+    setBookingData({
+      movieTitle: params.movieTitle as string,
+      theaterName: params.theaterName as string,
+      showtime: params.showtime as string,
+      date: params.date as string,
+      seats: params.seats,
+      food: params.food as Record<string, { id: string; name: string; quantity: number }>
+    });
+  }, []);
 
-  // Parse food orders and calculate total
-  const foodOrders: FoodOrder[] = selectedFood.map(food => {
-    const [id, quantity] = food.split(':');
-    return { id, quantity: parseInt(quantity) };
-  });
+  useEffect(() => {
+    const fetchFoodItems = async () => {
+      if (!bookingData?.food) return;
+      console.log(Object.entries(bookingData.food))
+      try {
+        setIsLoading(true);
+        const foodPromises = Object.entries(bookingData.food).map(async ([id, data]) => {
+          try {
+            const response = await axiosInstance.get(`/theater-food/${data.id}`);
+            const foodItem: FoodItem = response.data;
+            return {  
+              id: data.id,
+              name: data.name,
+              quantity: data.quantity,
+              price: foodItem.price
+            };
+          } catch (error) {
+            console.error(`Error fetching food item ${id}:`, error);
+            return {
+              id,
+              name: data.name,
+              quantity: data.quantity,
+              price: 0
+            };
+          }
+        });
 
-  // Calculate food price
+        const orders = await Promise.all(foodPromises);
+
+        setFoodOrders(orders);
+      } catch (error) {
+        console.error('Error fetching food items:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFoodItems();
+  }, [bookingData?.food]);
+
+  const ticketPrice = bookingData?.seats.length ? bookingData.seats.length * 75000 : 0;
+
   const foodPrice = foodOrders.reduce((total, order) => {
-    const food = foodItems.find(item => item.id === order.id);
-    return total + (food?.price || 0) * order.quantity;
+    return total + (order.price * order.quantity);
   }, 0);
 
   const totalAmount = ticketPrice + foodPrice;
 
-  if (!mounted) {
-    return null; // Prevent hydration mismatch
+  if (!mounted || !bookingData) {
+    return null;
+  }
+
+
+  const handlePayment = async () => {
+    if (!selectedPaymentMethod) {
+      alert('Vui lòng chọn phương thức thanh toán');
+      return;
+    }
+
+    await axiosInstance.post('/bookings', {
+      userId: parseInt(userId),
+      showtimeId: parseInt(showtimeId || "0"),
+      bookingTime: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).replace(/\//g, '/').replace(',', ''),
+      status: "PENDING",
+      totalAmount: totalAmount,
+      bookingSeats: bookingData?.seats.map(seat => ({seatId: seat.seatId, price: 75000})),
+      bookingFoods: foodOrders.map(food => ({foodInventoryId: food.id, quantity: food.quantity, price: food.price}))
+    } )
+
+    router.push("/booking-success");
   }
 
   return (
@@ -68,49 +148,50 @@ const PaymentClient: React.FC<PaymentClientProps> = ({
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600 text-sm mb-1">Phim</p>
-                <p className="font-medium text-gray-900">{movieTitle}</p>
+                <p className="font-medium text-gray-900">{bookingData.movieTitle}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600 text-sm mb-1">Rạp</p>
-                <p className="font-medium text-gray-900">{theaterName}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-600 text-sm mb-1">Suất chiếu</p>
-                <p className="font-medium text-gray-900">{showtime}</p>
+                <p className="font-medium text-gray-900">{bookingData.theaterName}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600 text-sm mb-1">Ngày</p>
-                <p className="font-medium text-gray-900">{new Date(dateStr).toLocaleDateString()}</p>
+                <p className="font-medium text-gray-900">{bookingData.showtime.split(" ")[0]}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-gray-600 text-sm mb-1">Suất chiếu</p>
+                <p className="font-medium text-gray-900">{bookingData.showtime.split(" ")[1]}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600 text-sm mb-1">Ghế</p>
-                <p className="font-medium text-gray-900">{selectedSeats.join(", ")}</p>
+                <p className="font-medium text-gray-900">{bookingData.seats.map(seat => seat.seatName).join(", ")}</p>
               </div>
             </div>
 
-            {foodOrders.length > 0 && (
+            {isLoading ? (
+              <div className="mt-8 text-center">
+                <p className="text-gray-600">Đang tải thông tin đồ ăn...</p>
+              </div>
+            ) : foodOrders.length > 0 ? (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">Đồ ăn và thức uống</h3>
                 <div className="space-y-4">
-                  {foodOrders.map(order => {
-                    const food = foodItems.find(item => item.id === order.id);
-                    return food ? (
-                      <div key={order.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                        <div>
-                          <p className="font-medium text-gray-900">{food.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {food.price.toLocaleString('vi-VN')}đ x {order.quantity}
-                          </p>
-                        </div>
-                        <p className="font-semibold text-gray-900">
-                          {(food.price * order.quantity).toLocaleString('vi-VN')}đ
+                  {foodOrders.map(order => (
+                    <div key={order.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">{order.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {order.price.toLocaleString('vi-VN')}đ x {order.quantity}
                         </p>
                       </div>
-                    ) : null;
-                  })}
+                      <p className="font-semibold text-gray-900">
+                        {(order.price * order.quantity).toLocaleString('vi-VN')}đ
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -146,7 +227,7 @@ const PaymentClient: React.FC<PaymentClientProps> = ({
           <h2 className="text-2xl font-semibold mb-6 text-gray-900">Chi tiết thanh toán</h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-3">
-              <span className="text-gray-700">Vé xem phim ({selectedSeats.length} vé)</span>
+              <span className="text-gray-700">Vé xem phim ({bookingData.seats.length} vé)</span>
               <span className="font-medium text-gray-900">{ticketPrice.toLocaleString('vi-VN')}đ</span>
             </div>
             {foodPrice > 0 && (
@@ -174,14 +255,7 @@ const PaymentClient: React.FC<PaymentClientProps> = ({
             Quay lại
           </button>
           <button
-            onClick={() => {
-              if (!selectedPaymentMethod) {
-                alert('Vui lòng chọn phương thức thanh toán');
-                return;
-              }
-              // Handle payment submission
-              router.push("/booking-success");
-            }}
+            onClick={handlePayment}
             className="px-8 py-3 bg-[var(--color-indigo-600)] text-white rounded-lg hover:bg-[var(--color-indigo-700)] text-lg font-medium transition-colors duration-200"
           >
             Thanh toán

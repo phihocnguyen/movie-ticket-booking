@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axiosInstance from "@/axiosInstance";
 
 interface SeatSelectionProps {
@@ -12,6 +12,7 @@ interface SeatSelectionProps {
 }
 
 interface SelectedSeat {
+  id: number;
   row: string;
   number: number;
   type: 'standard' | 'vip' | 'couple';
@@ -39,11 +40,18 @@ const SeatSelection = ({
   const [activeSummary, setActiveSummary] = useState(false);
   const [seats, setSeats] = useState<SeatData[]>([]);
   const router = useRouter();
-
+  const searchParams = useSearchParams();
+  const screenId = searchParams.get('screenId');
+  const showtimeId = searchParams.get('showTimeId');
   useEffect(() => {
     const fetchSeats = async () => {
+      if (!screenId) {
+        console.error('Screen ID is missing');
+        return;
+      }
       try {
-        const response = await axiosInstance.get('/seats');
+        const response = await axiosInstance.get(`/seats/screen/${screenId}`);
+        console.log('Fetched seats:', response.data);
         setSeats(response.data);
       } catch (error) {
         console.error('Error fetching seats:', error);
@@ -51,7 +59,7 @@ const SeatSelection = ({
     };
 
     fetchSeats();
-  }, []);
+  }, [screenId]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -78,21 +86,19 @@ const SeatSelection = ({
     }).replace(/\//g, '/');
   };
 
-  const handleSeatClick = (row: string, number: number, type: 'standard' | 'vip' | 'couple') => {
-    const seatIndex = selectedSeats.findIndex(seat => seat.row === row && seat.number === number);
+  const handleSeatClick = (row: string, number: number, type: 'standard' | 'vip' | 'couple', seatId: number) => {
+    const seatIndex = selectedSeats.findIndex(seat => seat.id === seatId);
     
     if (seatIndex === -1) {
-      // Add seat
       const price = type === 'standard' ? 100000 : type === 'vip' ? 150000 : 200000;
-      setSelectedSeats([...selectedSeats, { row, number, type, price }]);
+      setSelectedSeats([...selectedSeats, { id: seatId, row, number, type, price }]);
     } else {
-      // Remove seat
       setSelectedSeats(selectedSeats.filter((_, index) => index !== seatIndex));
     }
   };
 
-  const isSeatSelected = (row: string, number: number) => {
-    return selectedSeats.some(seat => seat.row === row && seat.number === number);
+  const isSeatSelected = (seatId: number) => {
+    return selectedSeats.some(seat => seat.id === seatId);
   };
 
   const getTotalPrice = () => {
@@ -105,23 +111,31 @@ const SeatSelection = ({
 
   const handleContinue = () => {
     if (selectedSeats.length === 0) return;
-    const seatsParam = selectedSeats
-      .map(seat =>
-        seat.type === "couple"
-          ? `${seat.row}${seat.number}-${seat.number + 1}`
-          : `${seat.row}${seat.number}`
-      )
-      .join(",");
+    
+    const seatsParam = selectedSeats.map(seat => {
+      const seatName = seat.type === "couple"
+        ? `${seat.row}${seat.number}-${seat.number + 1}`
+        : `${seat.row}${seat.number}`;
+      
+      return { seatId: seat.id, seatName };
+    });
+    
     router.push(
-      `/food-selection?movieTitle=${encodeURIComponent(movieTitle)}&theaterName=${encodeURIComponent(theaterName)}&showtime=${encodeURIComponent(showtime)}&date=${encodeURIComponent(date.toISOString())}&seats=${encodeURIComponent(seatsParam)}`
+      `/food-selection?movieTitle=${encodeURIComponent(movieTitle)}&theaterName=${encodeURIComponent(theaterName)}&showtimeId=${encodeURIComponent(showtimeId || '')}&showtime=${encodeURIComponent(showtime)}&date=${encodeURIComponent(date.toISOString())}&seats=${encodeURIComponent(JSON.stringify(seatsParam))}`
     );
   };
 
   const getSeatType = (seatTypeId: number): 'standard' | 'vip' | 'couple' => {
-    if (seatTypeId === 1) return 'standard';
-    if (seatTypeId === 2) return 'vip';
-    if (seatTypeId === 3) return 'couple';
-    return 'standard';
+    switch (seatTypeId) {
+      case 1:
+        return 'standard';
+      case 2:
+        return 'vip';
+      case 3:
+        return 'couple';
+      default:
+        return 'standard';
+    }
   };
 
   const parseSeatNumber = (seatNumber: string) => {
@@ -137,7 +151,16 @@ const SeatSelection = ({
       if (!rows[row]) rows[row] = [];
       rows[row].push(seat);
     });
-    const sortedRows = Object.keys(rows).sort((a, b) => a.localeCompare(b));
+
+    const sortedRows = Object.keys(rows).sort((a, b) => {
+      if (a.length === 1 && b.length === 1) {
+        return a.localeCompare(b);
+      }
+      if (a.length === 1) return -1;
+      if (b.length === 1) return 1;
+      return a.localeCompare(b);
+    });
+
     return (
       <div className="overflow-x-auto">
         <div className="min-w-[600px] px-4">
@@ -148,22 +171,24 @@ const SeatSelection = ({
                 const nb = parseSeatNumber(b.seatNumber).number;
                 return na - nb;
               });
+
               const seatElements = [];
               for (let i = 0; i < seatsInRow.length; i++) {
                 const seat = seatsInRow[i];
                 const { row, number } = parseSeatNumber(seat.seatNumber);
                 const type = getSeatType(seat.seatTypeId);
+
                 if (type === 'couple') {
                   seatElements.push(
                     <div key={seat.id} className="h-8 flex items-center justify-center flex-[2_2_0%] max-w-[112px] min-w-[56px]">
-                      {renderSeat(row, number, type, !seat.isActive)}
+                      {renderSeat(row, number, type, !seat.isActive, seat.id)}
                     </div>
                   );
-                  i++;
+                  i++; 
                 } else {
                   seatElements.push(
                     <div key={seat.id} className="h-8 flex items-center justify-center flex-1 min-w-[56px] max-w-[56px]">
-                      {renderSeat(row, number, type, !seat.isActive)}
+                      {renderSeat(row, number, type, !seat.isActive, seat.id)}
                     </div>
                   );
                 }
@@ -182,8 +207,8 @@ const SeatSelection = ({
     );
   };
 
-  const renderSeat = (row: string, number: number, type: 'standard' | 'vip' | 'couple', disabled = false) => {
-    const isSelected = isSeatSelected(row, number);
+  const renderSeat = (row: string, number: number, type: 'standard' | 'vip' | 'couple', disabled = false, seatId: number) => {
+    const isSelected = isSeatSelected(seatId);
     
     let bgColor = '';
     let textColor = 'text-gray-700';
@@ -209,7 +234,7 @@ const SeatSelection = ({
       return (
         <div
           className={`w-20 h-8 col-span-2 flex items-center justify-center cursor-pointer ${isSelected ? 'bg-indigo-600 text-white' : 'bg-pink-100 hover:bg-pink-200'} rounded-md transition-all duration-200 shadow-sm`}
-          onClick={() => !disabled && handleSeatClick(row, number, type)}
+          onClick={() => !disabled && handleSeatClick(row, number, type, seatId)}
         >
           <span className="text-xs font-semibold">{row}{number}-{number+1}</span>
         </div>
@@ -219,7 +244,7 @@ const SeatSelection = ({
     return (
       <div
         className={`w-10 h-8 flex items-center justify-center ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} ${bgColor} ${textColor} rounded-md transition-all duration-200 shadow-sm ${isSelected ? 'ring-2 ring-indigo-300' : ''}`}
-        onClick={() => !disabled && handleSeatClick(row, number, type)}
+        onClick={() => !disabled && handleSeatClick(row, number, type, seatId)}
       >
         <span className="text-xs font-semibold">{row}{number}</span>
       </div>
@@ -227,13 +252,12 @@ const SeatSelection = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-xl p-6 max-w-6xl mx-auto relative">
-      {/* Mobile Seat Summary Overlay */}
-      <div className={`lg:hidden fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300 ${activeSummary ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-xl p-4 transition-transform duration-300 ${activeSummary ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl p-6 max-w-6xl mx-auto relative">
+      <div className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300 ${activeSummary ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 transition-transform duration-300 ${activeSummary ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg">Ghế đã chọn ({selectedSeats.length})</h3>
-            <button onClick={toggleSummary} className="text-gray-500">
+            <h3 className="font-bold text-lg text-gray-800">Ghế đã chọn ({selectedSeats.length})</h3>
+            <button onClick={toggleSummary} className="text-gray-500 hover:text-gray-700 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -242,37 +266,41 @@ const SeatSelection = ({
           
           <div className="max-h-80 overflow-y-auto">
             {selectedSeats.length === 0 ? (
-              <p className="text-gray-500 text-sm">Chưa có ghế nào được chọn</p>
+              <p className="text-gray-500 text-sm text-center py-4">Chưa có ghế nào được chọn</p>
             ) : (
               <div className="space-y-2">
                 {selectedSeats.map((seat, index) => (
-                  <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
+                  <div key={index} className="flex justify-between items-center bg-gray-50/50 p-2 rounded-xl backdrop-blur-sm">
                     <div className="flex items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium ${seat.type === 'standard' ? 'bg-blue-500' : seat.type === 'vip' ? 'bg-purple-500' : 'bg-pink-500'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium shadow-sm ${
+                        seat.type === 'standard' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 
+                        seat.type === 'vip' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 
+                        'bg-gradient-to-br from-pink-500 to-pink-600'
+                      }`}>
                         {seat.row}{seat.number}
                       </div>
-                      <span className="ml-2 font-medium">
+                      <span className="ml-2 font-medium text-gray-700">
                         {seat.type === 'standard' ? 'Standard' : seat.type === 'vip' ? 'VIP' : 'Couple'}
                       </span>
                     </div>
-                    <span className="font-medium">{seat.price.toLocaleString()} VND</span>
+                    <span className="font-medium text-gray-700">{seat.price.toLocaleString()} VND</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
           
-          <div className="mt-4 border-t pt-4">
+          <div className="mt-4 border-t border-gray-100 pt-4">
             <div className="flex justify-between items-center">
-              <span className="font-bold">Tổng cộng:</span>
+              <span className="font-bold text-gray-800">Tổng cộng:</span>
               <span className="font-bold text-lg text-indigo-600">{getTotalPrice().toLocaleString()} VND</span>
             </div>
             
             <button 
-              className={`mt-4 w-full py-3 font-medium rounded-lg transition ${
+              className={`mt-4 w-full py-3 font-medium rounded-xl transition ${
                 selectedSeats.length > 0 
-                  ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 shadow-lg shadow-indigo-200' 
+                  : 'bg-gray-200 text-gray-400'
               }`}
               disabled={selectedSeats.length === 0}
               onClick={handleContinue}
@@ -283,82 +311,76 @@ const SeatSelection = ({
         </div>
       </div>
 
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-800">Chọn ghế</h2>
-          <div className="flex items-center text-sm text-indigo-600 font-medium">
+          <div className="flex items-center text-sm text-indigo-600 font-medium bg-indigo-50 px-3 py-1.5 rounded-full">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{timeLeft.minutes}:{timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds}</span>
+            {timeLeft.minutes}:{timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds}
           </div>
         </div>
         
-        <div className="mt-2 flex flex-wrap items-center text-sm text-gray-600">
+        <div className="mt-3 flex flex-wrap items-center text-sm text-gray-600 bg-white/50 backdrop-blur-sm p-3 rounded-xl shadow-sm">
           <div className="mr-4 mb-2">
             <span className="font-medium text-indigo-600">{movieTitle}</span>
           </div>
           <div className="mr-4 mb-2 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
-            <span>{theaterName}</span>
+            <span>Rạp: {theaterName}</span>
           </div>
           <div className="mr-4 mb-2 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>{formatDate(date)}</span>
+            <span>Ngày chiếu: {formatDate(date)}</span>
           </div>
           <div className="mb-2 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{showtime}</span>
+            <span>Giờ chiếu: {showtime.split(' ')[1]}</span>
           </div>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left side - Seat selection */}
         <div className="lg:w-2/3 order-2 lg:order-1">
-          {/* Screen */}
           <div className="relative mb-12">
-            <div className="bg-gradient-to-b from-indigo-100 to-white h-8 rounded-t-full mx-auto w-4/5 mb-1"></div>
-            <div className="bg-indigo-200 h-2 w-4/5 mx-auto rounded-t-full"></div>
+            <div className="bg-gradient-to-b from-indigo-200/50 to-white h-8 rounded-t-full mx-auto w-4/5 mb-1 shadow-sm"></div>
+            <div className="bg-indigo-300/50 h-2 w-4/5 mx-auto rounded-t-full shadow-sm"></div>
             <p className="text-center text-sm text-gray-500 mt-2">Màn hình</p>
           </div>
           
-          {/* Seat Legend */}
           <div className="flex flex-wrap justify-center space-x-4 mb-8">
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-blue-100 rounded mr-2"></div>
+              <div className="w-4 h-4 bg-gradient-to-br from-blue-400 to-blue-500 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Standard</span>
             </div>
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-purple-100 rounded mr-2"></div>
+              <div className="w-4 h-4 bg-gradient-to-br from-purple-400 to-purple-500 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">VIP</span>
             </div>
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-pink-100 rounded mr-2"></div>
+              <div className="w-4 h-4 bg-gradient-to-br from-pink-400 to-pink-500 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Couple</span>
             </div>
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-indigo-600 rounded mr-2"></div>
+              <div className="w-4 h-4 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Đã chọn</span>
             </div>
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
+              <div className="w-4 h-4 bg-gradient-to-br from-gray-300 to-gray-400 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Đã bán</span>
             </div>
           </div>
           
-          {/* Seats grid */}
           {renderSeatGrid()}
 
-          {/* Mobile continue button */}
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t z-10">
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm shadow-lg border-t z-10">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">{selectedSeats.length} ghế đã chọn</p>
@@ -368,15 +390,15 @@ const SeatSelection = ({
               <div className="flex gap-2">
                 <button
                   onClick={toggleSummary}
-                  className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium"
+                  className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100 transition-colors"
                 >
                   Chi tiết
                 </button>
                 
                 <button
-                  className={`px-4 py-2 rounded-lg font-medium ${
+                  className={`px-4 py-2 rounded-lg font-medium transition ${
                     selectedSeats.length > 0 
-                      ? 'bg-indigo-600 text-white' 
+                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 shadow-lg shadow-indigo-200' 
                       : 'bg-gray-200 text-gray-400'
                   }`}
                   disabled={selectedSeats.length === 0}
@@ -389,23 +411,21 @@ const SeatSelection = ({
           </div>
         </div>
         
-        {/* Right side - Seat information */}
         <div className="lg:w-1/3 order-1 lg:order-2">
-          <div className="bg-gray-50 p-6 rounded-xl shadow-sm sticky top-4">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm sticky top-4">
             <h3 className="font-bold text-lg text-gray-800 mb-4">Thông tin đặt vé</h3>
             
             <div className="space-y-6">
-              {/* Seat types */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white mr-3 shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium">Ghế Standard</p>
+                      <p className="font-medium text-gray-700">Ghế Standard</p>
                     </div>
                   </div>
                   <p className="font-medium text-gray-700">100.000 VND</p>
@@ -413,13 +433,13 @@ const SeatSelection = ({
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-500 mr-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center text-white mr-3 shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium">Ghế VIP</p>
+                      <p className="font-medium text-gray-700">Ghế VIP</p>
                     </div>
                   </div>
                   <p className="font-medium text-gray-700">150.000 VND</p>
@@ -427,13 +447,13 @@ const SeatSelection = ({
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 mr-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-white mr-3 shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium">Ghế Couple</p>
+                      <p className="font-medium text-gray-700">Ghế Couple</p>
                     </div>
                   </div>
                   <p className="font-medium text-gray-700">200.000 VND</p>
@@ -441,7 +461,7 @@ const SeatSelection = ({
               </div>
               
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="font-bold mb-3 flex items-center">
+                <h4 className="font-bold mb-3 flex items-center text-gray-800">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -460,19 +480,23 @@ const SeatSelection = ({
                   ) : (
                     <div className="space-y-2">
                       {selectedSeats.map((seat, index) => (
-                        <div key={index} className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <div key={index} className="flex justify-between items-center bg-white/50 backdrop-blur-sm p-3 rounded-lg shadow-sm">
                           <div className="flex items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium ${seat.type === 'standard' ? 'bg-blue-500' : seat.type === 'vip' ? 'bg-purple-500' : 'bg-pink-500'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium shadow-sm ${
+                              seat.type === 'standard' ? 'bg-gradient-to-br from-blue-400 to-blue-500' : 
+                              seat.type === 'vip' ? 'bg-gradient-to-br from-purple-400 to-purple-500' : 
+                              'bg-gradient-to-br from-pink-400 to-pink-500'
+                            }`}>
                               {seat.row}{seat.number}
                             </div>
-                            <span className="ml-2 font-medium">
+                            <span className="ml-2 font-medium text-gray-700">
                               {seat.type === 'standard' ? 'Standard' : seat.type === 'vip' ? 'VIP' : 'Couple'}
                             </span>
                           </div>
                           <div className="flex items-center">
                             <span className="font-medium text-gray-700">{seat.price.toLocaleString()}</span>
                             <button
-                              onClick={() => handleSeatClick(seat.row, seat.number, seat.type)}
+                              onClick={() => handleSeatClick(seat.row, seat.number, seat.type, seat.id)}
                               className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -490,25 +514,25 @@ const SeatSelection = ({
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Số lượng ghế:</span>
-                  <span className="font-medium">{selectedSeats.length}</span>
+                  <span className="font-medium text-gray-700">{selectedSeats.length}</span>
                 </div>
                 
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-gray-600">Phí dịch vụ:</span>
-                  <span className="font-medium">0 VND</span>
+                  <span className="font-medium text-gray-700">0 VND</span>
                 </div>
                 
                 <div className="flex justify-between items-center mt-4 pb-4 border-b border-gray-200">
-                  <span className="font-bold text-lg">Tổng cộng:</span>
+                  <span className="font-bold text-lg text-gray-800">Tổng cộng:</span>
                   <span className="font-bold text-xl text-indigo-600">{getTotalPrice().toLocaleString()} VND</span>
                 </div>
                 
                 <div className="mt-6 hidden lg:block">
                   <button 
-                    className={`w-full py-3 font-medium rounded-lg transition text-center ${
+                    className={`w-full py-3 font-medium rounded-xl transition text-center ${
                       selectedSeats.length > 0 
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 shadow-lg shadow-indigo-200' 
+                        : 'bg-gray-200 text-gray-400'
                     }`}
                     disabled={selectedSeats.length === 0}
                     onClick={handleContinue}

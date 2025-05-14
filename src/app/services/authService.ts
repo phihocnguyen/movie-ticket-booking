@@ -17,12 +17,14 @@ interface LoginResponse {
   username: string;
   role: string;
   fullName: string;
+  userId: number;
 }
 
 interface UserData {
   username: string;
   role: string;
   fullName: string;
+  id: number;
 }
 
 const API_URL = 'http://localhost:8080/api';
@@ -66,12 +68,14 @@ export const authService = {
       }
 
       const loginData: LoginResponse = await response.json();
+      console.log('Login response:', loginData);
       
       // Store the token and user data in localStorage
       localStorage.setItem('token', loginData.token);
       localStorage.setItem('username', loginData.username);
       localStorage.setItem('role', loginData.role);
       localStorage.setItem('fullName', loginData.fullName);
+      localStorage.setItem('userId', loginData.userId.toString());
 
       // Notify about auth state change
       if (authStateChangeCallback) {
@@ -90,6 +94,7 @@ export const authService = {
     localStorage.removeItem('username');
     localStorage.removeItem('role');
     localStorage.removeItem('fullName');
+    localStorage.removeItem('userId');
 
     // Notify about auth state change
     if (authStateChangeCallback) {
@@ -105,16 +110,23 @@ export const authService = {
     const username = localStorage.getItem('username');
     const role = localStorage.getItem('role');
     const fullName = localStorage.getItem('fullName');
+    const userId = localStorage.getItem('userId');
+
+    console.log('Getting user data:', { username, role, fullName, userId }); // Debug log
 
     if (!username || !role || !fullName) {
       return null;
     }
 
-    return {
+    const userData = {
       username,
       role,
-      fullName
+      fullName,
+      id: userId ? parseInt(userId, 10) : 0
     };
+
+    console.log('Returning user data:', userData); // Debug log
+    return userData;
   },
 
   isAuthenticated(): boolean {

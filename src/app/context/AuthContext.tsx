@@ -7,6 +7,7 @@ interface UserData {
   username: string;
   role: string;
   fullName: string;
+  id: number;
 }
 
 interface AuthContextType {
