@@ -3,9 +3,26 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { MapPin, Clock, Calendar, Film, Info, AlertCircle, Star, Play, Phone, Mail, DollarSign } from 'lucide-react';
 import { TheaterData, Movie } from '../types';
 import axiosInstance from '@/axiosInstance';
+
+interface Showtime {
+  id: number;
+  movieId: number;
+  theaterId: number;
+  screenId: number;
+  startTime: string;
+  endTime: string;
+  price: number;
+  isActive: boolean;
+  screenName: string;
+  movieTitle: string;
+  theaterName: string;
+  theaterAddress: string;
+  moviePosterUrl: string;
+}
 
 const theaterLogos: Record<string, string> = {
   'CGV': 'https://banner2.cleanpng.com/20181203/orv/kisspng-cj-cgv-vietnam-cinema-cj-group-film-1713914319903.webp',
@@ -81,12 +98,13 @@ const getNextDays = (days: number) => {
     const date = new Date(today);
     date.setDate(date.getDate() + i);
     
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
     const dayOfWeek = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'][date.getDay()];
     
     dates.push({
-      date: `${day}/${month}`,
+      date: `${day}/${month}/${year}`,
       dayOfWeek
     });
   }
@@ -95,6 +113,7 @@ const getNextDays = (days: number) => {
 };
 
 export default function TheaterDetailClient({ theaterId }: TheaterDetailClientProps) {
+  const router = useRouter();
   const [activeDate, setActiveDate] = useState<string>('');
   const [dateOptions, setDateOptions] = useState<{date: string, dayOfWeek: string}[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null);
@@ -102,6 +121,7 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'showtimes' | 'info'>('showtimes');
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
 
   useEffect(() => {
     const dates = getNextDays(7);
@@ -115,9 +135,13 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
     const fetchTheaterData = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get<TheaterData>(`/theaters/${theaterId}`);
-        const theaterData = response.data;
+        const [theaterResponse, showtimesResponse] = await Promise.all([
+          axiosInstance.get<TheaterData>(`/theaters/${theaterId}`),
+          axiosInstance.get<Showtime[]>(`/showtimes/theater/${theaterId}`)
+        ]);
 
+        const theaterData = theaterResponse.data;
+        const showtimesData = showtimesResponse.data;
         const logoKey = Object.keys(theaterLogos).find(key => theaterData.name.toUpperCase().includes(key));
         const theaterChain = Object.keys(theaterFeatures).find(chain => 
           theaterData.name.toUpperCase().includes(chain)
@@ -136,6 +160,7 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
         };
 
         setTheater(enhancedTheater);
+        setShowtimes(showtimesData);
         setError(null);
       } catch (err) {
         setError('Không thể tải thông tin rạp chiếu phim');
@@ -147,6 +172,48 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
 
     fetchTheaterData();
   }, [theaterId]);
+  const calculateDuration = (startTime: string, endTime: string) => {
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return '2h00\'';
+    }
+    
+    const duration = end.getTime() - start.getTime();
+    const hours = Math.floor(duration / (1000 * 60 * 60));
+    const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${hours}h${minutes}'`;
+  };
+  const groupedShowtimes = showtimes.reduce((acc, showtime) => {
+    const showtimeDate = showtime.startTime.split(' ')[0];
+    if (showtimeDate !== activeDate) {
+      return acc;
+    }
+
+    if (!acc[showtime.movieId]) {
+      acc[showtime.movieId] = {
+        id: showtime.movieId.toString(),
+        title: showtime.movieTitle,
+        poster: showtime.moviePosterUrl,
+        duration: calculateDuration(showtime.startTime.split(' ')[1], showtime.endTime.split(' ')[1]),
+        rating: 'T13',
+        genre: 'Hành động',
+        showtimes: []
+      };
+    }
+    
+    const time = showtime.startTime.split(' ')[1];
+    acc[showtime.movieId].showtimes = [{
+      date: showtimeDate,
+      times: [{ time, price: showtime.price.toString() }]
+    }];
+    
+    return acc;
+  }, {} as Record<string, Movie>);
+
+  const movies = Object.values(groupedShowtimes);
 
   useEffect(() => {
     if (movies.length > 0 && !selectedMovie) {
@@ -160,6 +227,19 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
 
   const handleMovieSelect = (movieId: string) => {
     setSelectedMovie(movieId);
+  };
+
+  const handleShowtimeClick = (showtime: Showtime) => {
+    const params = new URLSearchParams({
+      movieTitle: showtime.movieTitle,
+      theaterName: showtime.theaterName,
+      showTimeId: showtime.id.toString(),
+      showtime: showtime.startTime,
+      screenId: showtime.screenId.toString(),
+      date: new Date().toISOString()
+    });
+    
+    router.push(`/seat-selection?${params.toString()}`);
   };
 
   if (loading) {
@@ -214,7 +294,6 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 pt-16">
-      {/* Hero section with cinematic gradient */}
       <div className={`bg-gradient-to-b ${brandColors.primary} relative`}>
         <div className="absolute inset-0 opacity-20 bg-[url('https://api.placeholder.com/1920/1080')] bg-cover bg-center mix-blend-overlay"></div>
         <div className="container mx-auto px-4 pt-12 pb-8 relative z-10">
@@ -387,11 +466,11 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
                         <div className="flex flex-wrap items-center gap-3 mb-4">
                           <div className="flex items-center bg-gray-700/50 px-3 py-1 rounded-full text-sm">
                             <Clock size={14} className="mr-1 text-gray-400" />
-                            <span>{movie.duration}</span>
+                            <span>Thời lượng: {movie.duration}</span>
                           </div>
                           <div className="flex items-center bg-gray-700/50 px-3 py-1 rounded-full text-sm">
                             <Film size={14} className="mr-1 text-gray-400" />
-                            <span>{movie.genre}</span>
+                            <span>Thể loại: {movie.genre}</span>
                           </div>
                           <div className="flex items-center bg-gray-700/50 px-3 py-1 rounded-full text-sm">
                             <Star size={14} className="mr-1 text-yellow-400" />
@@ -419,16 +498,19 @@ export default function TheaterDetailClient({ theaterId }: TheaterDetailClientPr
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                           {activeDateShowtimes?.times.map((showtime, index) => (
-                            <Link 
+                            <button 
                               key={index} 
-                              href="#"
+                              onClick={() => handleShowtimeClick(showtimes.find(s => 
+                                s.startTime.split(' ')[1] === showtime.time && 
+                                s.startTime.split(' ')[0] === activeDate
+                              )!)}
                               className={`px-4 py-3 bg-gray-700/60 hover:bg-gray-700 backdrop-blur-sm border border-gray-600 hover:border-${brandColors.button.split(' ')[0].split('-')[1]}-500 rounded-lg transition-all text-center flex flex-col items-center justify-center group hover:transform hover:scale-105`}
                             >
                               <div className="text-white font-medium text-lg">{showtime.time}</div>
                               <div className={`mt-2 text-xs px-2 py-0.5 bg-gray-800/80 rounded text-gray-400 group-hover:bg-${brandColors.button.split(' ')[0].split('-')[1]}-900/50 group-hover:text-gray-200 transition-colors`}>
                                 Còn 40 ghế
                               </div>
-                            </Link>
+                            </button>
                           ))}
                           
                           {!activeDateShowtimes || activeDateShowtimes.times.length === 0 ? (
