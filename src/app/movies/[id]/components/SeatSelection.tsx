@@ -117,7 +117,11 @@ const SeatSelection = ({
         ? `${seat.row}${seat.number}-${seat.number + 1}`
         : `${seat.row}${seat.number}`;
       
-      return { seatId: seat.id, seatName };
+      return { 
+        seatId: seat.id, 
+        seatName,
+        price: seat.price
+      };
     });
     
     router.push(
