@@ -1,37 +1,43 @@
 // "use client";
 
+import { SidebarProvider } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { ReactNode } from "react";
+import { AppSidebar } from "../components/AppSidebar";
+import { AccountAvatar } from "../components/AccountAvatar";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r p-4 shadow-sm">
-        <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
-        <nav className="flex flex-col space-y-2">
-          <Link href="/admin" className="hover:text-blue-600">
-            Dashboard
-          </Link>
-          <Link href="/admin/users" className="hover:text-blue-600">
-            Users
-          </Link>
-          <Link href="/admin/settings" className="hover:text-blue-600">
-            Settings
-          </Link>
-        </nav>
-      </aside>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        {/* Sidebar cố định bên trái */}
+        <div className="w-64">
+          <AppSidebar />
+        </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white shadow px-6 py-4 border-b">
-          <h1 className="text-2xl font-semibold">Admin Area</h1>
-        </header>
+        {/* Nội dung chính */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-white shadow px-6 py-4 border-b flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-800">Admin Area</h1>
+            <div className="space-x-4">
+              {/* <Link
+                href="/"
+                className="text-sm text-indigo-600 hover:underline font-medium"
+              >
+                Back to Home
+              </Link> */}
+              <div className="text-sm text-indigo-600 hover:underline font-medium">
+                <AccountAvatar />
+              </div>
+              {/* Thêm các nút khác nếu cần, ví dụ: Logout */}
+            </div>
+          </header>
 
-        {/* Page content */}
-        <main className="p-6 flex-1">{children}</main>
+          {/* Nội dung trang */}
+          <main className="p-6 flex-1 bg-[#F9FBFD]">{children}</main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
