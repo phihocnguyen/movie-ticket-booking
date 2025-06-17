@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Nội dung chính */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="bg-white shadow px-6 py-4 border-b flex items-center justify-between">
+          <header className="bg-white  px-6 py-4 border-b flex items-center justify-between sticky top-0 shadow-none">
             <h1 className="text-2xl font-semibold text-gray-800">Admin Area</h1>
             <div className="space-x-4">
               {/* <Link

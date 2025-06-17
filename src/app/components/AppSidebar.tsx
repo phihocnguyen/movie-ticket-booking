@@ -68,7 +68,7 @@ const items = [
 export function AppSidebar() {
   return (
     <Sidebar>
-      <div className="bg-white h-full">
+      <div className="bg-white h-full px-1.5">
         <SidebarContent>
           {/* Logo thương hiệu */}
           <div className="p-4 border-b border-gray-200 flex items-center justify-center bg-white">
