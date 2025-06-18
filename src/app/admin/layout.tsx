@@ -21,16 +21,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <header className="bg-white  px-6 py-4 border-b flex items-center justify-between sticky top-0 shadow-none">
             <h1 className="text-2xl font-semibold text-gray-800">Admin Area</h1>
             <div className="space-x-4">
-              {/* <Link
-                href="/"
-                className="text-sm text-indigo-600 hover:underline font-medium"
-              >
-                Back to Home
-              </Link> */}
               <div className="text-sm text-indigo-600 hover:underline font-medium">
                 <AccountAvatar />
               </div>
-              {/* Thêm các nút khác nếu cần, ví dụ: Logout */}
             </div>
           </header>
 

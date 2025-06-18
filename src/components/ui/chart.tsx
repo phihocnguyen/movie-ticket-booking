@@ -36,7 +36,7 @@ export function ChartContainer({
 }: ChartContainerProps) {
   return (
     <div className={cn("w-full", className)} {...divProps}>
-      <ResponsiveContainer width="100%" height={365}>
+      <ResponsiveContainer width="100%" height={360}>
         {children}
       </ResponsiveContainer>
     </div>

@@ -50,7 +50,7 @@ export default function DashBoardAreaChart() {
       <CardHeader>
         <CardTitle>Sơ đồ doanh thu</CardTitle>
         <CardDescription>
-          <div className="flex flex-wrap items-center gap-3 text-sm min-h-[50px]">
+          <div className="flex flex-wrap items-center gap-3 text-sm min-h-[50px] mt-1">
             <span className="text-gray-700 dark:text-gray-300">Từ</span>
             <div className="relative z-10">
               <DatePicker

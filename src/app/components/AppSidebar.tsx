@@ -3,9 +3,6 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -118,9 +115,9 @@ export function AppSidebar() {
                       {item.children.map((child) => (
                         <SidebarMenuSubItem key={child.title}>
                           <SidebarMenuButton asChild>
-                            <a className="ml-2" href={child.url}>
+                            <Link className="ml-2" href={child.url}>
                               {child.title}
-                            </a>
+                            </Link>
                           </SidebarMenuButton>
                         </SidebarMenuSubItem>
                       ))}
@@ -130,10 +127,10 @@ export function AppSidebar() {
               ) : (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon className="h-4 w-4 mr-2" />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
