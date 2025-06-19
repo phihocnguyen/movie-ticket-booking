@@ -18,7 +18,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
+import { PiNewspaperClippingLight } from "react-icons/pi";
 import { RiMovie2AiLine } from "react-icons/ri";
 import { RxDashboard } from "react-icons/rx";
 import { HiOutlineTicket } from "react-icons/hi";
@@ -54,6 +54,11 @@ const items = [
     title: "Theater Management",
     url: "/admin/theaters",
     icon: GiTheaterCurtains,
+  },
+  {
+    title: "Blog Management",
+    url: "/admin/blogs",
+    icon: PiNewspaperClippingLight,
   },
   {
     title: "System Management",

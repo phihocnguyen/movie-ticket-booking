@@ -140,6 +140,7 @@ export default function Vouchers() {
         <Table className="w-full">
           <TableHeader>
             <TableRow className="bg-gray-200 text-sm text-gray-700 hover:bg-gray-200">
+              <TableHead className="px-4 py-4">STT</TableHead>
               <TableHead className="px-4 py-4">Mã</TableHead>
               <TableHead className="px-4 py-4">Tiêu đề</TableHead>
               <TableHead className="px-4 py-4">Phần trăm giảm</TableHead>
@@ -169,11 +170,14 @@ export default function Vouchers() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedVouchers.map((voucher) => (
+              paginatedVouchers.map((voucher, index) => (
                 <TableRow
                   key={voucher.id}
                   className="hover:bg-gray-100 transition"
                 >
+                  <TableCell className="px-4 py-4">
+                    {(currentPage - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell className="px-4 py-4">{voucher.code}</TableCell>
                   <TableCell className="px-4 py-4">{voucher.title}</TableCell>
                   <TableCell className="px-4 py-4">

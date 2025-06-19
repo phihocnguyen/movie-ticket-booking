@@ -243,6 +243,7 @@ export default function Movies() {
         <Table className="w-full">
           <TableHeader>
             <TableRow className="bg-gray-200 text-sm text-gray-700 hover:bg-gray-200">
+              <TableHead className="px-4 py-4">STT</TableHead>
               <TableHead className="px-4 py-4">Tên phim</TableHead>
               <TableHead className="px-4 py-4">Đạo diễn</TableHead>
               <TableHead className="px-4 py-4">Thể loại</TableHead>
@@ -272,11 +273,14 @@ export default function Movies() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedMovies.map((movie) => (
+              paginatedMovies.map((movie, index) => (
                 <TableRow
                   key={movie.id}
                   className="hover:bg-gray-100 transition"
                 >
+                  <TableCell className="px-4 py-4">
+                    {(currentPage - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell className="px-4 py-4">{movie.title}</TableCell>
                   <TableCell className="px-4 py-4">{movie.director}</TableCell>
                   <TableCell className="px-4 py-4">{movie.genre}</TableCell>
