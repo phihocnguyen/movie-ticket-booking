@@ -1,66 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Customer } from "../page";
+import { Staff } from "../page";
 import { SquarePen } from "lucide-react";
 
-interface CustomerFormProps {
-  customer?: Customer | null;
+interface StaffFormProps {
+  staff?: Staff | null;
 }
 
-export default function CustomerForm({ customer }: CustomerFormProps) {
-  const [edit, setEdit] = useState<boolean>(false);
+export default function StaffForm({ staff }: StaffFormProps) {
+  const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({
-    name: customer?.name || "",
-    email: customer?.email || "",
-    password: customer?.password || "",
-    phone_number: customer?.phone_number || "",
-    username: customer?.username || "",
-    full_name: customer?.full_name || "",
-    date_of_birth: customer?.date_of_birth || "",
+    name: staff?.name ?? "",
+    email: staff?.email ?? "",
+    password: staff?.password ?? "",
+    phone_number: staff?.phone_number ?? "",
+    username: staff?.username ?? "",
+    full_name: staff?.full_name ?? "",
+    date_of_birth: staff?.date_of_birth ?? "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
+  // Khi prop `staff` thay đổi → reset chế độ xem (disable edit)
+  useEffect(() => {
+    setEdit(false);
+  }, [staff]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // onSubmit(form);
+    // TODO: gọi API lưu thông tin `form`
   };
 
-  useEffect(() => {
-    setEdit(false);
-  }, [customer]);
+  // true  => input bị disable (chế độ xem)
+  // false => cho phép nhập
+  const disabled = staff !== null && !edit;
 
   return (
     <div className="max-h-[600px] overflow-y-auto pr-2">
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* full_name */}
+        {/* Họ tên */}
         <div className="flex items-center gap-5">
-          <label className="w-[20%] text-[15px]" htmlFor="full_name">
-            Tên đầy đủ
+          <label className="w-[20%] text-[15px]" htmlFor="name">
+            Họ tên
           </label>
           <input
-            id="full_name"
-            name="full_name"
-            placeholder="Tên đầy đủ"
-            value={form.full_name}
+            id="name"
+            name="name"
+            placeholder="Họ tên"
+            value={form.name}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={customer !== null && !edit}
+            disabled={disabled}
           />
         </div>
-        {/* email */}
+
+        {/* Email */}
         <div className="flex items-center gap-5">
           <label className="w-[20%] text-[15px]" htmlFor="email">
             Email
@@ -68,16 +67,17 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
           <input
             id="email"
             name="email"
+            type="email"
             placeholder="Email"
             value={form.email}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={customer !== null && !edit}
+            disabled={disabled}
           />
         </div>
 
-        {/* phone_number */}
+        {/* Số điện thoại */}
         <div className="flex items-center gap-5">
           <label className="w-[20%] text-[15px]" htmlFor="phone_number">
             Số điện thoại
@@ -90,11 +90,46 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={customer !== null && !edit}
+            disabled={disabled}
           />
         </div>
 
-        {/* date_of_birth */}
+        {/* Tên đăng nhập */}
+        <div className="flex items-center gap-5">
+          <label className="w-[20%] text-[15px]" htmlFor="username">
+            Tên đăng nhập
+          </label>
+          <input
+            id="username"
+            name="username"
+            placeholder="Tên đăng nhập"
+            value={form.username}
+            onChange={handleChange}
+            className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
+            required
+            disabled={disabled}
+          />
+        </div>
+
+        {/* Password (chỉ cho phép nhập khi thêm mới hoặc đang chỉnh sửa) */}
+        <div className="flex items-center gap-5">
+          <label className="w-[20%] text-[15px]" htmlFor="password">
+            Mật khẩu
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Mật khẩu"
+            value={form.password}
+            onChange={handleChange}
+            className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
+            required={staff === null}
+            disabled={disabled}
+          />
+        </div>
+
+        {/* Ngày sinh */}
         <div className="flex items-center gap-5">
           <label className="w-[20%] text-[15px]" htmlFor="date_of_birth">
             Ngày sinh
@@ -107,65 +142,30 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={customer !== null && !edit}
-          />
-        </div>
-        {/*user name*/}
-        <div className="flex items-center gap-5">
-          <label className="w-[20%] text-[15px]" htmlFor="username">
-            Tên đăng nhập
-          </label>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            value={form.username}
-            onChange={handleChange}
-            className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
-            disabled={customer !== null && !edit}
-          />
-        </div>
-        {/*password*/}
-        <div className="flex items-center gap-5">
-          <label className="w-[20%] text-[15px]" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="text"
-            value={form.password}
-            onChange={handleChange}
-            className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
-            disabled={customer !== null && !edit}
+            disabled={disabled}
           />
         </div>
 
-        {customer && !edit && (
+        {/* Khối nút hành động */}
+        {staff && !edit && (
           <div className="flex gap-5 text-[15px] my-2">
-            <div
-              className="flex gap-5 border p-[4px] rounded-lg items-center  bg-[#CCC6F4] cursor-pointer"
-              onClick={() => {
-                setEdit(true);
-              }}
+            <button
+              type="button"
+              className="flex gap-2 border p-[4px] rounded-lg items-center bg-[#CCC6F4] hover:bg-[#b7b0ee] transition-colors"
+              onClick={() => setEdit(true)}
             >
               Chỉnh sửa thông tin
-              <SquarePen size={20} className="" />
-            </div>
+              <SquarePen size={20} />
+            </button>
           </div>
         )}
 
-        {/* submit button */}
         {edit && (
           <div className="flex justify-end gap-5">
             <button
-              type="submit"
+              type="button"
               className="w-[20%] bg-[#D51F2A] text-white py-2 rounded"
-              onClick={() => {
-                setEdit(false);
-              }}
+              onClick={() => setEdit(false)}
             >
               Hủy
             </button>
@@ -177,7 +177,8 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
             </button>
           </div>
         )}
-        {customer === null && (
+
+        {staff === null && (
           <div className="flex justify-end">
             <button
               type="submit"

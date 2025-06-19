@@ -168,7 +168,7 @@ export default function Customers() {
               <TableHead className="px-4 py-4">Tên</TableHead>
               <TableHead className="px-4 py-4">Email</TableHead>
               <TableHead className="px-4 py-4">Số điện thoại</TableHead>
-              <TableHead className="px-4 py-4">Username</TableHead>
+
               <TableHead className="px-4 py-4">Ngày sinh</TableHead>
               <TableHead className="px-4 py-4">Hành động</TableHead>
             </TableRow>
@@ -189,14 +189,13 @@ export default function Customers() {
                   key={customer.id}
                   className="hover:bg-gray-100 transition"
                 >
-                  <TableCell className="px-4 py-4">{index + 1}</TableCell>
+                  <TableCell className="px-4 py-4">
+                    {(currentPage - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell className="px-4 py-4">{customer.name}</TableCell>
                   <TableCell className="px-4 py-4">{customer.email}</TableCell>
                   <TableCell className="px-4 py-4">
                     {customer.phone_number}
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    {customer.username}
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     {customer.date_of_birth}
