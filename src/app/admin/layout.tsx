@@ -1,25 +1,28 @@
-// "use client";
+"use client";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { AppSidebar } from "../components/AppSidebar";
 import { AccountAvatar } from "../components/AccountAvatar";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const [titleHeader, setTitleHeader] = useState<String>("DashBoard");
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         {/* Sidebar cố định bên trái */}
         <div className="w-64">
-          <AppSidebar />
+          <AppSidebar setTitleHeader={setTitleHeader} />
         </div>
 
         {/* Nội dung chính */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="bg-white  px-6 py-4 border-b flex items-center justify-between sticky top-0 shadow-none">
-            <h1 className="text-2xl font-semibold text-gray-800">Admin Area</h1>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              {titleHeader}
+            </h1>
             <div className="space-x-4">
               <div className="text-sm text-indigo-600 hover:underline font-medium">
                 <AccountAvatar />

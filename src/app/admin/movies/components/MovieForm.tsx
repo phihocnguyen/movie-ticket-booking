@@ -79,7 +79,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -96,7 +96,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -113,7 +113,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] resize-none focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -131,7 +131,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -148,7 +148,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -165,7 +165,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -182,7 +182,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -201,7 +201,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
               placeholder="URL poster"
               className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
               required
-              disabled={!edit}
+              disabled={movie !== null && !edit}
             />
           </div>
           <div className="flex items-center justify-end w-full">
@@ -232,7 +232,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
               placeholder="URL backdrop"
               className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
               required
-              disabled={!edit}
+              disabled={movie !== null && !edit}
             />
           </div>
           <div className="flex items-center justify-end w-full">
@@ -263,7 +263,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
               placeholder="URL trailer"
               className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
               required
-              disabled={!edit}
+              disabled={movie !== null && !edit}
             />
           </div>
           <div className="flex items-center justify-end w-full">
@@ -292,7 +292,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -309,7 +309,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -330,7 +330,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
 
@@ -347,7 +347,7 @@ export default function MovieForm({ movie }: MovieFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
             required
-            disabled={!edit}
+            disabled={movie !== null && !edit}
           />
         </div>
         {movie && !edit && (

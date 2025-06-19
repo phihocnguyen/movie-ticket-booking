@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-
+import { usePathname } from "next/navigation";
 import { Film, Ticket } from "lucide-react";
 import {
   Collapsible,
@@ -47,7 +47,7 @@ const items = [
     icon: LuUsers,
     children: [
       { title: "Customer Management", url: "/admin/users/customers" },
-      { title: "Staff Management", url: "/admin/users/staff" },
+      { title: "Staff Management", url: "/admin/users/staffs" },
     ],
   },
   {
@@ -62,7 +62,12 @@ const items = [
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({
+  setTitleHeader,
+}: {
+  setTitleHeader: (title: string) => void;
+}) {
+  const pathname = usePathname();
   return (
     <Sidebar>
       <div className="bg-white h-full px-1.5">
@@ -99,7 +104,11 @@ export function AppSidebar() {
                 <Collapsible key={item.title} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton>
+                      <SidebarMenuButton
+                        className={`transition-all bg-transparent hover:bg-[#C8C2EF] focus:bg-[#C8C2EF] ${
+                          pathname === item.url ? "bg-[#C8C2EF]" : ""
+                        }`}
+                      >
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-4">
                             <item.icon className="h-4 w-4" />
@@ -114,8 +123,17 @@ export function AppSidebar() {
                     <SidebarMenuSub>
                       {item.children.map((child) => (
                         <SidebarMenuSubItem key={child.title}>
-                          <SidebarMenuButton asChild>
-                            <Link className="ml-2" href={child.url}>
+                          <SidebarMenuButton
+                            asChild
+                            className={`transition-all bg-transparent hover:bg-[#C8C2EF] focus:bg-[#C8C2EF] ${
+                              pathname === item.url ? "bg-[#C8C2EF]" : ""
+                            }`}
+                          >
+                            <Link
+                              className="ml-2"
+                              href={child.url}
+                              onClick={() => setTitleHeader(child.title)}
+                            >
                               {child.title}
                             </Link>
                           </SidebarMenuButton>
@@ -126,8 +144,16 @@ export function AppSidebar() {
                 </Collapsible>
               ) : (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    className={`transition-all bg-transparent hover:bg-[#C8C2EF] focus:bg-[#C8C2EF] ${
+                      pathname === item.url ? "bg-[#C8C2EF]" : ""
+                    }`}
+                  >
+                    <Link
+                      href={item.url}
+                      onClick={() => setTitleHeader(item.title)}
+                    >
                       <item.icon className="h-4 w-4 mr-2" />
                       <span>{item.title}</span>
                     </Link>
