@@ -19,7 +19,7 @@ export function AccountAvatar() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem>
           <Link
-            href="#"
+            href="/admin/personalInformation"
             className="flex items-center justify-center gap-2.5 flex-row"
           >
             <FileUser />
