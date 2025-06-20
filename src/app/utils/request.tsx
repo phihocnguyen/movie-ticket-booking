@@ -18,9 +18,9 @@ export const get = async (path: string): Promise<any> => {
 
     if (!response.ok) {
       // Trả về message để phía bên kia showError
-      return result.message || "Có lỗi xảy ra từ phía server.";
+      showErrorMessage(result.message);
+      return;
     }
-
     return result; // Thành công: trả về toàn bộ object
   } catch (error: any) {
     // Lỗi ngoài fetch hoặc JSON parsing

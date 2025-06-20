@@ -14,6 +14,7 @@ import {
 import BaseModal from "../../components/BaseModal";
 import Pagination from "../../components/Pagination";
 import StaffForm from "./components/StaffForm";
+import { getAllStaff } from "@/app/services/admin/staffService";
 
 export interface Staff {
   id: number;
@@ -126,9 +127,24 @@ export default function Staffs() {
   const [pageSize, setPageSize] = useState(6);
   const [showModal, setShowModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-
+  const [allStaff, setAllStaff] = useState<Staff[]>([]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await getAllStaff();
+        if (res === null) {
+          setAllStaff([]);
+        } else {
+          setAllStaff(res);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách user:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
   const filtered = useMemo(() => {
-    return mockStaffs
+    return allStaff
       .filter((staff) => {
         return (
           staff.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -179,7 +195,7 @@ export default function Staffs() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedStaffs.length === 0 ? (
+            {paginatedStaffs?.length === 0 ? (
               <TableRow className="hover:bg-white">
                 <TableCell
                   colSpan={6}
@@ -189,7 +205,7 @@ export default function Staffs() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedStaffs.map((staff, index) => (
+              paginatedStaffs?.map((staff, index) => (
                 <TableRow
                   key={staff.id}
                   className="hover:bg-gray-100 transition"

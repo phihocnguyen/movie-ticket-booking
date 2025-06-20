@@ -18,6 +18,7 @@ import TheaterModal from "./TheaterModal";
 import { authService } from "@/app/services/authService";
 import { useAuth } from "../context/AuthContext";
 import NotificationModal from "./NotificationModal";
+import { setTime } from "node_modules/react-datepicker/dist/date_utils";
 
 interface Movie {
   id: number;
@@ -54,12 +55,18 @@ const Header: React.FC = () => {
     pathname?.includes("/food-selection") ||
     pathname?.includes("/payment") ||
     pathname?.includes("/booking-success");
-  const { userData, isAuthenticated, updateAuthState } = useAuth();
+  let { userData: dataInitial, isAuthenticated, updateAuthState } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(3); // Mock unread count
-
+  const [userData, setUserData] = useState(dataInitial);
+  useEffect(() => {
+    // console.log("check userData", userData);
+    if (dataInitial?.role !== "CUSTOMER") {
+      setUserData(null);
+    }
+  }, [dataInitial]);
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -442,7 +449,7 @@ const Header: React.FC = () => {
               </button>
 
               <div className="hidden md:block" ref={userMenuRef}>
-                {userData ? (
+                {userData !== null ? (
                   <div className="relative">
                     <button
                       onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}

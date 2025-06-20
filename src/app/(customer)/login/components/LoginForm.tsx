@@ -1,39 +1,61 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { authService } from '@/app/services/authService';
-import { useRouter } from 'next/navigation';
-import { User, Lock, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { authService } from "@/app/services/authService";
+import { useRouter } from "next/navigation";
+import { User, Lock, ArrowRight } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
-
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    const fullName = localStorage.getItem("fullName");
+    const userId = localStorage.getItem("userId");
+    const username = localStorage.getItem("username");
+    if (token && role && fullName && userId && username) {
+      if (role === "ADMIN") {
+        router.replace("/admin");
+      } else if (role === "CUSTOMER") {
+        router.replace("/");
+      } else {
+        router.replace("/StaffTheater");
+      }
+    }
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      await authService.login(formData);
-      router.push('/'); // Redirect to home page after successful login
+      const data = await authService.login(formData);
+      if (data.role === "ADMIN") {
+        router.replace("/admin");
+      } else if (data.role === "CUSTOMER") {
+        router.replace("/");
+      } else {
+        router.replace("/StaffTheater");
+      }
+      // Redirect to home page after successful login
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +63,7 @@ export default function LoginForm() {
 
   return (
     <div className="h-screen flex items-center justify-center bg-gray-100 p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -49,35 +71,38 @@ export default function LoginForm() {
       >
         {/* Left side - Poster */}
         <div className="hidden md:block md:w-5/12 relative">
-          <img 
-            src="https://cdn.vectorstock.com/i/1000v/37/80/vintage-cinema-posters-for-a-film-festival-event-vector-54413780.jpg" 
-            alt="Cinema Poster" 
+          <img
+            src="https://cdn.vectorstock.com/i/1000v/37/80/vintage-cinema-posters-for-a-film-festival-event-vector-54413780.jpg"
+            alt="Cinema Poster"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/40 flex items-end p-6">
             <div className="text-white">
               <h3 className="text-xl font-bold mb-2">Welcome Back!</h3>
-              <p className="text-sm opacity-80">Sign in to continue your cinematic journey</p>
+              <p className="text-sm opacity-80">
+                Sign in to continue your cinematic journey
+              </p>
             </div>
           </div>
         </div>
-        
+
         {/* Right side - Form */}
         <div className="w-full md:w-7/12 p-5 md:p-8 bg-white overflow-y-auto max-h-[90vh]">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Sign In
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900">Sign In</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+              Don't have an account?{" "}
+              <Link
+                href="/register"
+                className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+              >
                 Create one
               </Link>
             </p>
           </div>
 
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-red-50 text-red-500 p-2 rounded-lg text-sm flex items-center mb-4"
@@ -88,7 +113,10 @@ export default function LoginForm() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Username
               </label>
               <div className="relative">
@@ -110,7 +138,10 @@ export default function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <div className="relative">
@@ -139,13 +170,19 @@ export default function LoginForm() {
                   type="checkbox"
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition-colors"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <Link href="#" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                <Link
+                  href="#"
+                  className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -173,14 +210,21 @@ export default function LoginForm() {
             </motion.div>
 
             <div className="text-center text-xs text-gray-500 mt-2">
-              By signing in, you agree to our 
-              <a href="#" className="text-indigo-600 hover:text-indigo-500"> Terms of Service </a> 
-              and 
-              <a href="#" className="text-indigo-600 hover:text-indigo-500"> Privacy Policy</a>.
+              By signing in, you agree to our
+              <a href="#" className="text-indigo-600 hover:text-indigo-500">
+                {" "}
+                Terms of Service{" "}
+              </a>
+              and
+              <a href="#" className="text-indigo-600 hover:text-indigo-500">
+                {" "}
+                Privacy Policy
+              </a>
+              .
             </div>
           </form>
         </div>
       </motion.div>
     </div>
   );
-} 
+}

@@ -1,17 +1,37 @@
+// "use client";
 import MoviePoster from "@/app/components/MoviePoster";
 import MovieCarousel from "@/app/components/MovieCarousel";
 import { getLatestMovies, getTopRatedMovies } from "./movies/[id]/api";
+// import { useEffect } from "react";
+// import { useRouter } from "next/navigation";
+// import { useRouter } from "next/router";
 export const metadata = {
   title: "Movie Tickets - Đặt vé phim trực tuyến",
   description: "Đặt vé phim trực tuyến",
 };
 
 export default async function Home() {
+  // const router = useRouter();
   const [latestMovies, topRatedMovies] = await Promise.all([
     getLatestMovies(),
     getTopRatedMovies(),
   ]);
-
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+  //   const role = localStorage.getItem("role");
+  //   const fullName = localStorage.getItem("fullName");
+  //   const userId = localStorage.getItem("userId");
+  //   const username = localStorage.getItem("username");
+  //   if (token && role && fullName && userId && username) {
+  //     if (role === "ADMIN") {
+  //       router.replace("/admin");
+  //     } else if (role === "CUSTOMER") {
+  //       router.replace("/");
+  //     } else {
+  //       router.replace("/StaffTheater");
+  //     }
+  //   }
+  // }, []);
   const safeLatestMovies = Array.isArray(latestMovies) ? latestMovies : [];
   const safeTopRatedMovies = Array.isArray(topRatedMovies)
     ? topRatedMovies
