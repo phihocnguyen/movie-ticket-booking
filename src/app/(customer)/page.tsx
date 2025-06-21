@@ -11,27 +11,11 @@ export const metadata = {
 };
 
 export default async function Home() {
-  // const router = useRouter();
   const [latestMovies, topRatedMovies] = await Promise.all([
     getLatestMovies(),
     getTopRatedMovies(),
   ]);
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   const role = localStorage.getItem("role");
-  //   const fullName = localStorage.getItem("fullName");
-  //   const userId = localStorage.getItem("userId");
-  //   const username = localStorage.getItem("username");
-  //   if (token && role && fullName && userId && username) {
-  //     if (role === "ADMIN") {
-  //       router.replace("/admin");
-  //     } else if (role === "CUSTOMER") {
-  //       router.replace("/");
-  //     } else {
-  //       router.replace("/StaffTheater");
-  //     }
-  //   }
-  // }, []);
+
   const safeLatestMovies = Array.isArray(latestMovies) ? latestMovies : [];
   const safeTopRatedMovies = Array.isArray(topRatedMovies)
     ? topRatedMovies

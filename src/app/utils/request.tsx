@@ -86,17 +86,14 @@ export const del = async (path: string, auth = false): Promise<any> => {
     });
 
     // Bọc JSON parsing để tránh lỗi khi backend không trả JSON
-    let result: any = {};
-    try {
-      result = await response.json();
-    } catch (e) {
-      result = {};
-    }
+
+    const result = await response.json();
 
     if (response.ok) {
       return result;
     } else {
-      return result.message;
+      showErrorMessage(result.message);
+      return;
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message || error}`);

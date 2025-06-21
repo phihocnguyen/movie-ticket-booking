@@ -21,104 +21,11 @@ export interface Staff {
   name: string;
   email: string;
   password: string | null;
-  phone_number: string;
+  phoneNumber: string;
   username: string;
-  full_name: string;
-  date_of_birth: string;
+  fullName: string;
+  dateOfBirth: string;
 }
-
-const mockStaffs: Staff[] = [
-  {
-    id: 1,
-    name: "Nguyen Van A",
-    email: "a@example.com",
-    password: null,
-    phone_number: "0123456789",
-    username: "nguyenvana",
-    full_name: "Nguyen Van A",
-    date_of_birth: "1995-05-01",
-  },
-  {
-    id: 2,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 3,
-    name: "Tran Thi C",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 4,
-    name: "Tran Thi d",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 5,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 6,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 7,
-    name: "Nguyen Van A",
-    email: "a@example.com",
-    password: null,
-    phone_number: "0123456789",
-    username: "nguyenvana",
-    full_name: "Nguyen Van A",
-    date_of_birth: "1995-05-01",
-  },
-  {
-    id: 8,
-    name: "Nguyen Van A",
-    email: "a@example.com",
-    password: null,
-    phone_number: "0123456789",
-    username: "nguyenvana",
-    full_name: "Nguyen Van A",
-    date_of_birth: "1995-05-01",
-  },
-  {
-    id: 9,
-    name: "Nguyen Van A",
-    email: "a@example.com",
-    password: null,
-    phone_number: "0123456789",
-    username: "nguyenvana",
-    full_name: "Nguyen Van A",
-    date_of_birth: "1995-05-01",
-  },
-];
 
 export default function Staffs() {
   const [search, setSearch] = useState("");
@@ -128,10 +35,12 @@ export default function Staffs() {
   const [showModal, setShowModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [allStaff, setAllStaff] = useState<Staff[]>([]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const res = await getAllStaff();
+        console.log("Check res", res);
         if (res === null) {
           setAllStaff([]);
         } else {
@@ -147,12 +56,12 @@ export default function Staffs() {
     return allStaff
       .filter((staff) => {
         return (
-          staff.name.toLowerCase().includes(search.toLowerCase()) ||
+          staff.fullName.toLowerCase().includes(search.toLowerCase()) ||
           staff.email.toLowerCase().includes(search.toLowerCase())
         );
       })
       .sort((a, b) => (sortOrder === "asc" ? a.id - b.id : b.id - a.id));
-  }, [search, sortOrder]);
+  }, [search, sortOrder, allStaff]);
 
   const paginatedStaffs = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -187,7 +96,7 @@ export default function Staffs() {
           <TableHeader>
             <TableRow className="bg-gray-200 text-sm text-gray-700 hover:bg-gray-200">
               <TableHead className="px-4 py-4">STT</TableHead>
-              <TableHead className="px-4 py-4">Tên</TableHead>
+              <TableHead className="px-4 py-4">Họ và tên</TableHead>
               <TableHead className="px-4 py-4">Email</TableHead>
               <TableHead className="px-4 py-4">Số điện thoại</TableHead>
               <TableHead className="px-4 py-4">Ngày sinh</TableHead>
@@ -213,13 +122,13 @@ export default function Staffs() {
                   <TableCell className="px-4 py-4">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
-                  <TableCell className="px-4 py-4">{staff.name}</TableCell>
+                  <TableCell className="px-4 py-4">{staff.fullName}</TableCell>
                   <TableCell className="px-4 py-4">{staff.email}</TableCell>
                   <TableCell className="px-4 py-4">
-                    {staff.phone_number}
+                    {staff.phoneNumber}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {staff.date_of_birth}
+                    {staff.dateOfBirth}
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2 items-center">
