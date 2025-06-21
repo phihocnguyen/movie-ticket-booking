@@ -61,10 +61,13 @@ const Header: React.FC = () => {
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(3); // Mock unread count
   const [userData, setUserData] = useState(dataInitial);
+  console.log("Check userData,dataInitial", userData, dataInitial);
   useEffect(() => {
-    // console.log("check userData", userData);
+    // console.log("Check dataInitial", dataInitial);
     if (dataInitial?.role !== "CUSTOMER") {
       setUserData(null);
+    } else {
+      setUserData(dataInitial);
     }
   }, [dataInitial]);
   useEffect(() => {

@@ -7,8 +7,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { User, LogOut, FileUser } from "lucide-react";
+import { authService } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export function AccountAvatar() {
+  const { updateAuthState } = useAuth();
+  const router = useRouter();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
@@ -27,13 +32,17 @@ export function AccountAvatar() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <Link
-            href="#"
+          <button
             className="flex items-center justify-center gap-2.5 flex-row"
+            onClick={() => {
+              authService.logout();
+              updateAuthState();
+              router.push("/");
+            }}
           >
             <LogOut />
             <p> Log out</p>
-          </Link>
+          </button>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
