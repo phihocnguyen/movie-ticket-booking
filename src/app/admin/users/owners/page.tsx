@@ -13,18 +13,27 @@ import {
 } from "@/components/ui/table";
 import BaseModal from "../../components/BaseModal";
 import Pagination from "../../components/Pagination";
-import StaffForm from "./components/StaffForm";
-import { getAllStaff } from "@/app/services/admin/staffService";
+import { deleteOwner, getAllOwner } from "@/app/services/admin/ownerService";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
+import OwnerForm from "./components/OwnerForm";
 
-export interface Staff {
+export interface Owner {
   id: number;
-  name: string;
-  email: string;
-  password: string | null;
-  phoneNumber: string;
-  username: string;
-  fullName: string;
-  dateOfBirth: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phoneNumber: string;
+    username: string;
+    fullName: string;
+    dateOfBirth: string;
+    role: "THEATER_OWNER";
+    password: string | null;
+  };
 }
 
 export default function Staffs() {
@@ -33,18 +42,20 @@ export default function Staffs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
   const [showModal, setShowModal] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-  const [allStaff, setAllStaff] = useState<Staff[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
+  const [allOwner, setAllOwner] = useState<Owner[]>([]);
+  const [formKey, setFormKey] = useState(Date.now());
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await getAllStaff();
+        const res = await getAllOwner();
         console.log("Check res", res);
         if (res === null) {
-          setAllStaff([]);
+          setAllOwner([]);
         } else {
-          setAllStaff(res);
+          const data = res.data;
+          setAllOwner(data);
         }
       } catch (error) {
         console.error("Lỗi khi lấy danh sách user:", error);
@@ -53,15 +64,15 @@ export default function Staffs() {
     fetchUsers();
   }, []);
   const filtered = useMemo(() => {
-    return allStaff
-      .filter((staff) => {
+    return allOwner
+      .filter((owner) => {
         return (
-          staff.fullName.toLowerCase().includes(search.toLowerCase()) ||
-          staff.email.toLowerCase().includes(search.toLowerCase())
+          owner.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+          owner.user?.email?.toLowerCase().includes(search.toLowerCase())
         );
       })
       .sort((a, b) => (sortOrder === "asc" ? a.id - b.id : b.id - a.id));
-  }, [search, sortOrder, allStaff]);
+  }, [search, sortOrder, allOwner]);
 
   const paginatedStaffs = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -76,11 +87,49 @@ export default function Staffs() {
   const toggleSort = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
-
+  const handleUpdatedOwner = (updated: Owner) => {
+    // Cập nhật danh sách
+    setAllOwner((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    // Gán lại selectedCustomer để form nhận props mới
+    setSelectedOwner(updated);
+  };
+  const handleDelete = async (ownerId: number) => {
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa chủ rạp này không?"
+    );
+    // console.log(">>>>check confirmed:", confirmed); // Log id ra console
+    // console.log("User id:", userId); // Log id ra console
+    if (!confirmed) return;
+    try {
+      const result = await deleteOwner(ownerId);
+      // console.log(">>>>check result:", result); // Log kết quả xóa ra console
+      if (!result) {
+        return;
+      }
+      setAllOwner((prev) => prev.filter((owner) => owner.id !== ownerId));
+      showSuccess("Xóa chủ rạp thành công!");
+    } catch (error) {
+      showErrorMessage("Xóa chủ rạp thất bại!" + error);
+    }
+  };
+  const reload = async () => {
+    try {
+      const res = await getAllOwner();
+      console.log("Check res", res);
+      if (res === null) {
+        setAllOwner([]);
+      } else {
+        const data = res.data;
+        setAllOwner(data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách user:", error);
+    }
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-        <div className="flex gap-4 w-full">
+        <div className="flex gap-4 w-full justify-between">
           <input
             type="text"
             placeholder="Tìm kiếm theo tên hoặc email"
@@ -88,6 +137,16 @@ export default function Staffs() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
           />
+          <button
+            className="flex gap-2.5 border px-10 py-1.5 rounded-[8px] bg-[#432DD7] text-white"
+            onClick={() => {
+              setSelectedOwner(null);
+              setShowModal(true);
+              setFormKey(Date.now());
+            }}
+          >
+            <Plus /> Thêm
+          </button>
         </div>
       </div>
 
@@ -114,32 +173,39 @@ export default function Staffs() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedStaffs?.map((staff, index) => (
+              paginatedStaffs?.map((owner, index) => (
                 <TableRow
-                  key={staff.id}
+                  key={owner.id}
                   className="hover:bg-gray-100 transition"
                 >
                   <TableCell className="px-4 py-4">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
-                  <TableCell className="px-4 py-4">{staff.fullName}</TableCell>
-                  <TableCell className="px-4 py-4">{staff.email}</TableCell>
                   <TableCell className="px-4 py-4">
-                    {staff.phoneNumber}
+                    {owner.user.fullName}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {staff.dateOfBirth}
+                    {owner.user.email}
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
+                    {owner.user.phoneNumber}
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
+                    {owner.user.dateOfBirth}
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2 items-center">
                       <Eye
                         className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
                         onClick={() => {
-                          setSelectedStaff(staff);
+                          setSelectedOwner(owner);
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => handleDelete(owner.id)}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -163,10 +229,16 @@ export default function Staffs() {
       {showModal && (
         <BaseModal
           open={showModal}
-          title={selectedStaff ? "Chi tiết nhân viên" : "Thêm nhân viên mới"}
+          title={selectedOwner ? "Chi tiết nhân viên" : "Thêm nhân viên mới"}
           onClose={() => setShowModal(false)}
         >
-          <StaffForm staff={selectedStaff} />
+          <OwnerForm
+            owner={selectedOwner}
+            reload={reload}
+            setShowModal={setShowModal}
+            key={formKey}
+            handleUpdatedOwner={handleUpdatedOwner}
+          />
         </BaseModal>
       )}
     </div>

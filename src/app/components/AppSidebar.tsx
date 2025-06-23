@@ -47,7 +47,7 @@ const items = [
     icon: LuUsers,
     children: [
       { title: "Customer Management", url: "/admin/users/customers" },
-      { title: "Theater Staff Management", url: "/admin/users/staffs" },
+      { title: "Theater Owner Management", url: "/admin/users/owners" },
     ],
   },
   {

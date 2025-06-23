@@ -58,7 +58,8 @@ export const post = async (
     if (response.ok) {
       return result;
     } else {
-      return result.message || "Có lỗi xảy ra từ phía server.";
+      showErrorMessage(result.message);
+      return;
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message || error}`);
