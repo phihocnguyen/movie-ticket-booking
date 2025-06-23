@@ -1,8 +1,20 @@
+"use client";
+import { useRouter } from "next/navigation";
 import DashBoardAreaChart from "./components/DashBoardAreaChart";
 import DashBoardPieChart from "./components/DashBoardPiechart";
 import { Ticket, CircleDollarSign, Clapperboard, Theater } from "lucide-react";
+import { useEffect } from "react";
 
 export default function DashBoard() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    // Có thể kiểm tra thêm role nếu cần
+    if (!token) {
+      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+    }
+  }, []);
   return (
     <div className="space-y-6">
       {/* Record Section */}

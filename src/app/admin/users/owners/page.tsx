@@ -20,6 +20,7 @@ import {
   showSuccess,
 } from "@/app/utils/alertHelper";
 import OwnerForm from "./components/OwnerForm";
+import { useRouter } from "next/navigation";
 
 export interface Owner {
   id: number;
@@ -45,7 +46,14 @@ export default function Staffs() {
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
   const [allOwner, setAllOwner] = useState<Owner[]>([]);
   const [formKey, setFormKey] = useState(Date.now());
-
+  const router = useRouter();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    // Có thể kiểm tra thêm role nếu cần
+    if (!token) {
+      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+    }
+  }, []);
   useEffect(() => {
     const fetchUsers = async () => {
       try {

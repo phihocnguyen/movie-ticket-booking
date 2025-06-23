@@ -4,28 +4,30 @@ import { useEffect, useState } from "react";
 import { SquarePen } from "lucide-react";
 import { User } from "../page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import dayjs from "dayjs";
+import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
+import { editCustomer } from "@/app/services/admin/customerService";
+import { accessSync } from "fs";
+interface InforFormProps {
+  user?: User | null;
+}
 
-export default function InforForm() {
+export default function InforForm({ user }: InforFormProps) {
   const [edit, setEdit] = useState<boolean>(false);
-  //   const [form, setForm] = useState({
-  //     name: customer?.name || "",
-  //     email: customer?.email || "",
-  //     password: customer?.password || "",
-  //     phone_number: customer?.phone_number || "",
-  //     username: customer?.username || "",
-  //     full_name: customer?.full_name || "",
-  //     date_of_birth: customer?.date_of_birth || "",
-  //   });
+  const [userState, setUserState] = useState(user);
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone_number: "",
-    username: "",
-    full_name: "",
-    date_of_birth: "",
+    id: user?.id,
+    name: user?.name || "",
+    email: user?.email || "",
+    password: user?.password || "",
+    phoneNumber: user?.phoneNumber || "",
+    username: user?.username || "",
+    fullName: user?.fullName || "",
+    dateOfBirth:
+      dayjs(user?.dateOfBirth, "DD/MM/YYYY").format("YYYY-MM-DD") ?? "",
   });
-
+  // console.log("Check form", form);
+  // console.log("Check user xxx", user);
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -37,12 +39,102 @@ export default function InforForm() {
       [name]: value,
     }));
   };
+  const validateData = (): boolean => {
+    const { fullName, email, phoneNumber, username, password, dateOfBirth } =
+      form;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // onSubmit(form);
+    // 1. Trường rỗng
+    if (!fullName.trim())
+      return showErrorMessage("Vui lòng nhập họ tên!"), false;
+    if (!email.trim()) return showErrorMessage("Vui lòng nhập email!"), false;
+    if (!phoneNumber.trim())
+      return showErrorMessage("Vui lòng nhập số điện thoại!"), false;
+    if (!username.trim())
+      return showErrorMessage("Vui lòng nhập tên đăng nhập!"), false;
+    if (!dateOfBirth.trim())
+      return showErrorMessage("Vui lòng chọn ngày sinh!"), false;
+
+    // 2. Ngày sinh hợp lệ
+    const birthday = dayjs(dateOfBirth, "YYYY-MM-DD");
+    if (!birthday.isValid() || birthday.isAfter(dayjs()))
+      return showErrorMessage("Ngày sinh phải nhỏ hơn ngày hiện tại!"), false;
+    if (birthday.isAfter(dayjs().subtract(15, "year")))
+      return showErrorMessage("Tuổi phải ít nhất 15!"), false;
+    if (birthday.year() <= 1930)
+      return showErrorMessage("Năm sinh phải lớn hơn 1930!"), false;
+
+    // 3. Regex sđt & email
+    if (!/^0\d{9}$/.test(phoneNumber.trim()))
+      return (
+        showErrorMessage("Số điện thoại phải có 10 số và bắt đầu bằng 0!"),
+        false
+      );
+    if (!/^[\w-.]+@gmail\.com$/i.test(email.trim()))
+      return showErrorMessage("Email phải có dạng ...@gmail.com!"), false;
+
+    return true;
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateData()) return;
+
+    if (!form.id) {
+      showErrorMessage("Không tìm thấy ID người dùng!");
+      return;
+    }
+
+    // Chuẩn hoá payload
+    const payload: Record<string, any> = {
+      name: form.fullName.trim(),
+      email: form.email.trim(),
+      phoneNumber: form.phoneNumber.trim(),
+      username: form.username.trim(),
+      fullName: form.fullName.trim(),
+      dateOfBirth: dayjs(form.dateOfBirth, "YYYY-MM-DD").format("YYYY-MM-DD"),
+    };
+
+    // Chỉ thêm password khi người dùng nhập
+    if (form.password.trim()) payload.password = form.password.trim();
+
+    try {
+      const ok = await editCustomer(payload, form.id); // API update
+      if (!ok) return;
+
+      showSuccess("Cập nhật thông tin thành công!");
+      setEdit(false); // thoát chế độ chỉnh sửa
+      setUserState((prev) => ({
+        ...prev!,
+        ...payload,
+      }));
+      setForm((prev) => ({ ...prev, ...payload })); // cập nhật UI
+    } catch (err) {
+      showErrorMessage("Lỗi khi cập nhật: " + (err as Error).message);
+    }
+  };
+
+  const resetForm = () => {
+    if (!userState) return;
+    setForm({
+      id: userState.id,
+      name: userState.name ?? "",
+      email: userState.email ?? "",
+      password: userState.password ?? "",
+      phoneNumber: userState.phoneNumber ?? "",
+      username: userState.username ?? "",
+      fullName: userState.fullName ?? "",
+      dateOfBirth: userState.dateOfBirth
+        ? userState.dateOfBirth.includes("/")
+          ? dayjs(userState.dateOfBirth, "DD/MM/YYYY").format("YYYY-MM-DD")
+          : userState.dateOfBirth
+        : "",
+    });
+  };
+
+  const handleCancel = () => {
+    setEdit(false);
+    resetForm();
+  };
   //   useEffect(() => {
   //     setEdit(false);
   //   }, [customer]);
@@ -59,17 +151,16 @@ export default function InforForm() {
           <form onSubmit={handleSubmit} className="space-y-3">
             {/* full_name */}
             <div className="flex items-center gap-5">
-              <label className="w-[20%] text-[15px]" htmlFor="full_name">
+              <label className="w-[20%] text-[15px]" htmlFor="fullName">
                 Tên đầy đủ
               </label>
               <input
-                id="full_name"
-                name="full_name"
+                id="fullName"
+                name="fullName"
                 placeholder="Tên đầy đủ"
-                value={form.full_name}
+                value={form.fullName}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-                required
                 disabled={!edit}
               />
             </div>
@@ -85,41 +176,38 @@ export default function InforForm() {
                 value={form.email}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-                required
                 disabled={!edit}
               />
             </div>
 
             {/* phone_number */}
             <div className="flex items-center gap-5">
-              <label className="w-[20%] text-[15px]" htmlFor="phone_number">
+              <label className="w-[20%] text-[15px]" htmlFor="phoneNumber">
                 Số điện thoại
               </label>
               <input
-                id="phone_number"
-                name="phone_number"
+                id="phoneNumber"
+                name="phoneNumber"
                 placeholder="Số điện thoại"
-                value={form.phone_number}
+                value={form.phoneNumber}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-                required
                 disabled={!edit}
               />
             </div>
 
             {/* date_of_birth */}
             <div className="flex items-center gap-5">
-              <label className="w-[20%] text-[15px]" htmlFor="date_of_birth">
+              <label className="w-[20%] text-[15px]" htmlFor="dateOfBirth">
                 Ngày sinh
               </label>
               <input
-                id="date_of_birth"
-                name="date_of_birth"
+                id="dateOfBirth"
+                name="dateOfBirth"
                 type="date"
-                value={form.date_of_birth}
+                value={form.dateOfBirth}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-                required
                 disabled={!edit}
               />
             </div>
@@ -135,7 +223,6 @@ export default function InforForm() {
                 value={form.username}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-                required
                 disabled={!edit}
               />
             </div>
@@ -158,11 +245,8 @@ export default function InforForm() {
             {edit && (
               <div className="flex justify-end gap-5">
                 <button
-                  type="submit"
                   className="w-[20%] bg-[#D51F2A] text-white py-2 rounded"
-                  onClick={() => {
-                    setEdit(false);
-                  }}
+                  onClick={handleCancel}
                 >
                   Hủy
                 </button>

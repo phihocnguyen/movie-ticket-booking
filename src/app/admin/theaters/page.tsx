@@ -14,6 +14,7 @@ import {
 import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import TheaterForm from "./components/TheaterForm";
+import { useRouter } from "next/navigation";
 
 /* ────────────────── INTERFACE ────────────────── */
 export interface Theater {
@@ -86,7 +87,14 @@ export default function Theaters() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null);
-
+  const router = useRouter();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    // Có thể kiểm tra thêm role nếu cần
+    if (!token) {
+      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+    }
+  }, []);
   /* ---------- FILTER + SORT ---------- */
   const filtered = useMemo(() => {
     return mockTheaters

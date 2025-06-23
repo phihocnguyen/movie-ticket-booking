@@ -23,6 +23,7 @@ import {
   showErrorMessage,
   showSuccess,
 } from "@/app/utils/alertHelper";
+import { useRouter } from "next/navigation";
 
 export interface Customer {
   id: number;
@@ -46,6 +47,14 @@ export default function Customers() {
   );
   const [allCustomer, setAllCustomer] = useState<Customer[]>([]);
   const [formKey, setFormKey] = useState(Date.now());
+  const router = useRouter();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    // Có thể kiểm tra thêm role nếu cần
+    if (!token) {
+      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+    }
+  }, []);
   useEffect(() => {
     const fetchUsers = async () => {
       try {

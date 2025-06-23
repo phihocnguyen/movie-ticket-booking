@@ -1,4 +1,5 @@
-import { ReactNode } from "react";
+"use client";
+import { ReactNode, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,35 +15,39 @@ import { useRouter } from "next/navigation";
 export function AccountAvatar() {
   const { updateAuthState } = useAuth();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+
+  const handleLogout = () => {
+    authService.logout();
+    updateAuthState();
+    setOpen(false); // đóng dropdown
+    router.push("/");
+  };
+
+  const handleNavigateToInfo = () => {
+    setOpen(false); // đóng dropdown
+    router.push("/admin/personalInformation");
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger>
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white transition-all duration-300 shadow-lg hover:shadow-indigo-500/50 hover:scale-105 mx-auto">
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white transition-all duration-300 shadow-lg hover:shadow-indigo-500/50 hover:scale-105 mx-auto cursor-pointer">
           <User size={24} />
         </div>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end">
-        <DropdownMenuItem>
-          <Link
-            href="/admin/personalInformation"
-            className="flex items-center justify-center gap-2.5 flex-row"
-          >
-            <FileUser />
-            <p> Personal Information</p>
-          </Link>
+        <DropdownMenuItem
+          onClick={handleNavigateToInfo}
+          className="cursor-pointer"
+        >
+          <FileUser />
+          <span> Personal Information</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <button
-            className="flex items-center justify-center gap-2.5 flex-row"
-            onClick={() => {
-              authService.logout();
-              updateAuthState();
-              router.push("/");
-            }}
-          >
-            <LogOut />
-            <p> Log out</p>
-          </button>
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+          <LogOut />
+          <span> Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

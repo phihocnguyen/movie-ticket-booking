@@ -4,49 +4,82 @@ import { useEffect, useState } from "react";
 import { SquarePen } from "lucide-react";
 import { User } from "../page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-export default function ChangePasswordForm() {
+import dayjs from "dayjs";
+import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
+import { editCustomer } from "@/app/services/admin/customerService";
+import { useRouter } from "next/navigation";
+interface ChangePasswordFormProps {
+  user?: User | null;
+}
+export default function ChangePasswordForm({ user }: ChangePasswordFormProps) {
   const [edit, setEdit] = useState<boolean>(false);
-  //   const [form, setForm] = useState({
-  //     name: customer?.name || "",
-  //     email: customer?.email || "",
-  //     password: customer?.password || "",
-  //     phone_number: customer?.phone_number || "",
-  //     username: customer?.username || "",
-  //     full_name: customer?.full_name || "",
-  //     date_of_birth: customer?.date_of_birth || "",
-  //   });
+  const [userState, setUserState] = useState(user);
+  const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone_number: "",
-    username: "",
-    full_name: "",
-    date_of_birth: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
+  const validate = (): boolean => {
+    const { currentPassword, newPassword, confirmNewPassword } = form;
 
-  const handleSubmit = (e: React.FormEvent) => {
+    if (!currentPassword.trim())
+      return showErrorMessage("Vui lòng nhập mật khẩu hiện tại!"), false;
+
+    if (!newPassword.trim())
+      return showErrorMessage("Vui lòng nhập mật khẩu mới!"), false;
+
+    if (newPassword.length < 6)
+      return showErrorMessage("Mật khẩu mới phải ≥ 6 ký tự!"), false;
+
+    if (newPassword !== confirmNewPassword)
+      return showErrorMessage("Xác nhận mật khẩu không khớp!"), false;
+
+    if (newPassword === currentPassword)
+      return showErrorMessage("Mật khẩu mới phải khác mật khẩu cũ!"), false;
+
+    return true;
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // onSubmit(form);
+    if (!validate()) return;
+
+    if (!user?.id) {
+      showErrorMessage("Không tìm thấy ID người dùng!");
+      return;
+    }
+
+    // Chuẩn hoá payload
+    const payload: Record<string, any> = {
+      password: form.newPassword.trim(),
+    };
+    console.log("Check payload", payload);
+    try {
+      const ok = await editCustomer(payload, user.id); // API update
+      if (!ok) return;
+
+      showSuccess("Đổi mật khẩu thành công!");
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("fullName");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("username");
+      setEdit(false); // thoát chế độ chỉnh sửa
+      setForm({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+      router.replace("/login");
+    } catch (err) {
+      showErrorMessage("Đổi mật khẩu thất bại: " + (err as Error).message);
+    }
   };
-
-  //   useEffect(() => {
-  //     setEdit(false);
-  //   }, [customer]);
-
+  const handleCancel = () => {
+    setEdit(false);
+    setForm({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+  };
   return (
     <div className="container mx-auto max-w-4xl mt-5">
       <Card className="shadow-xl rounded-2xl p-6">
@@ -58,14 +91,14 @@ export default function ChangePasswordForm() {
             {/*password*/}
 
             <div className="flex items-center gap-5">
-              <label className="w-[20%] text-[15px]" htmlFor="password">
+              <label className="w-[20%] text-[15px]" htmlFor="currentPassword">
                 Mật khẩu cũ
               </label>
               <input
-                id="password"
-                name="password"
+                id="currentPassword"
+                name="currentPassword"
                 type="password"
-                value={form.password}
+                value={form.currentPassword}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
                 required
@@ -81,7 +114,7 @@ export default function ChangePasswordForm() {
                 id="newPassword"
                 name="newPassword"
                 type="password"
-                value={form.password}
+                value={form.newPassword}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
                 required
@@ -100,7 +133,7 @@ export default function ChangePasswordForm() {
                 id="confirmNewPassword"
                 name="confirmNewPassword"
                 type="password"
-                value={form.password}
+                value={form.confirmNewPassword}
                 onChange={handleChange}
                 className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
                 required
@@ -126,11 +159,8 @@ export default function ChangePasswordForm() {
             {edit && (
               <div className="flex justify-end gap-5">
                 <button
-                  type="submit"
                   className="w-[20%] bg-[#D51F2A] text-white py-2 rounded"
-                  onClick={() => {
-                    setEdit(false);
-                  }}
+                  onClick={handleCancel}
                 >
                   Hủy
                 </button>
