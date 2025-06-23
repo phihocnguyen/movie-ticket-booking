@@ -35,7 +35,7 @@ export default function LoginForm() {
       } else if (role === "CUSTOMER") {
         router.replace("/");
       } else {
-        router.replace("/StaffTheater");
+        router.replace("/owner");
       }
     }
   }, []);
@@ -51,7 +51,7 @@ export default function LoginForm() {
       } else if (data.role === "CUSTOMER") {
         router.replace("/");
       } else {
-        router.replace("/StaffTheater");
+        router.replace("/owner");
       }
       // Redirect to home page after successful login
     } catch (err) {

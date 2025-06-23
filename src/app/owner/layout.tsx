@@ -3,8 +3,8 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { ReactNode, useState } from "react";
-import { AppSidebar } from "./components/AppSidebar";
 import { AccountAvatar } from "../components/AccountAvatar";
+import { AppSidebar } from "./components/AppSidebar";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [titleHeader, setTitleHeader] = useState<String>("DashBoard");
