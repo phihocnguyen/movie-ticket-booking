@@ -1,10 +1,14 @@
-import { get, post, put, del } from "@/app/utils/request";
+import { get, put, del, patch } from "@/app/utils/request";
 
-export const getAllUsers = () => get("api/users");
-
-// export const getUserById = (id: string) => get(`/admin/users/${id}`);
-
-export const updateUser = (id: string, data: any) =>
-  put(data, `api/users/${id}`);
-
-export const deleteUser = (id: string) => del(`api/users/${id}`, true);
+export const getAllCustomer = async () => {
+  const reuslt = await get("api/user/getAllCustomer");
+  return reuslt;
+};
+export const deleteCustomer = async (id: number) => {
+  const reuslt = await del(`api/user/${id}`);
+  return reuslt;
+};
+export const editCustomer = async (values: any, id: number) => {
+  const reuslt = await patch(values, `api/user/${id}`);
+  return reuslt;
+};

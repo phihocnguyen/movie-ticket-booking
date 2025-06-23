@@ -14,100 +14,26 @@ import {
 import BaseModal from "../../components/BaseModal";
 import Pagination from "../../components/Pagination";
 import CustomerForm from "./components/CustomerForm";
+import {
+  deleteCustomer,
+  getAllCustomer,
+} from "@/app/services/admin/customerService";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
 
 export interface Customer {
   id: number;
   name: string;
   email: string;
   password: string | null;
-  phone_number: string;
+  phoneNumber: string;
   username: string;
-  full_name: string;
-  date_of_birth: string;
+  fullName: string;
+  dateOfBirth: string;
 }
-
-const mockCustomers: Customer[] = [
-  {
-    id: 1,
-    name: "Nguyen Van A",
-    email: "a@example.com",
-    password: null,
-    phone_number: "0123456789",
-    username: "nguyenvana",
-    full_name: "Nguyen Van A",
-    date_of_birth: "1995-05-01",
-  },
-  {
-    id: 2,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 3,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 4,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 5,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 6,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 7,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-  {
-    id: 8,
-    name: "Tran Thi B",
-    email: "b@example.com",
-    password: null,
-    phone_number: "0987654321",
-    username: "tranthib",
-    full_name: "Tran Thi B",
-    date_of_birth: "1998-08-10",
-  },
-];
 
 export default function Customers() {
   const [search, setSearch] = useState("");
@@ -118,17 +44,49 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
-
+  const [allCustomer, setAllCustomer] = useState<Customer[]>([]);
+  const [formKey, setFormKey] = useState(Date.now());
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await getAllCustomer();
+        console.log("Check res", res);
+        if (res === null) {
+          setAllCustomer([]);
+        } else {
+          const data = res.data;
+          setAllCustomer(data);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách user:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+  const reload = async () => {
+    try {
+      const res = await getAllCustomer();
+      console.log("Check res", res);
+      if (res === null) {
+        setAllCustomer([]);
+      } else {
+        const data = res.data;
+        setAllCustomer(data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách user:", error);
+    }
+  };
   const filtered = useMemo(() => {
-    return mockCustomers
+    return allCustomer
       .filter((customer) => {
         return (
-          customer.name.toLowerCase().includes(search.toLowerCase()) ||
+          customer.fullName.toLowerCase().includes(search.toLowerCase()) ||
           customer.email.toLowerCase().includes(search.toLowerCase())
         );
       })
       .sort((a, b) => (sortOrder === "asc" ? a.id - b.id : b.id - a.id));
-  }, [search, sortOrder]);
+  }, [search, sortOrder, allCustomer]);
 
   const paginatedCustomers = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -144,6 +102,38 @@ export default function Customers() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
+  const handleDelete = async (customerId: number) => {
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa khách hàng này?"
+    );
+    // console.log(">>>>check confirmed:", confirmed); // Log id ra console
+    // console.log("User id:", userId); // Log id ra console
+    if (!confirmed) return;
+    try {
+      const result = await deleteCustomer(customerId);
+      // console.log(">>>>check result:", result); // Log kết quả xóa ra console
+      if (!result) {
+        return;
+      }
+      setAllCustomer((prev) =>
+        prev.filter((customer) => customer.id !== customerId)
+      );
+      showSuccess("Xóa user thành công!");
+    } catch (error) {
+      showErrorMessage("Xóa user thất bại!");
+    }
+  };
+  // const fetchCustomer = () => {
+  //   setFormKey(Date.now());
+  // };
+  const handleUpdatedCustomer = (updated: Customer) => {
+    // Cập nhật danh sách
+    setAllCustomer((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c))
+    );
+    // Gán lại selectedCustomer để form nhận props mới
+    setSelectedCustomer(updated);
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
@@ -165,7 +155,7 @@ export default function Customers() {
           <TableHeader>
             <TableRow className="bg-gray-200 text-sm text-gray-700 hover:bg-gray-200">
               <TableHead className="px-4 py-4">STT</TableHead>
-              <TableHead className="px-4 py-4">Tên</TableHead>
+              <TableHead className="px-4 py-4">Họ và tên</TableHead>
               <TableHead className="px-4 py-4">Email</TableHead>
               <TableHead className="px-4 py-4">Số điện thoại</TableHead>
 
@@ -192,13 +182,15 @@ export default function Customers() {
                   <TableCell className="px-4 py-4">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
-                  <TableCell className="px-4 py-4">{customer.name}</TableCell>
+                  <TableCell className="px-4 py-4">
+                    {customer.fullName}
+                  </TableCell>
                   <TableCell className="px-4 py-4">{customer.email}</TableCell>
                   <TableCell className="px-4 py-4">
-                    {customer.phone_number}
+                    {customer.phoneNumber}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {customer.date_of_birth}
+                    {customer.dateOfBirth}
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2 items-center">
@@ -209,7 +201,10 @@ export default function Customers() {
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => handleDelete(customer.id)}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -238,7 +233,12 @@ export default function Customers() {
           }
           onClose={() => setShowModal(false)}
         >
-          <CustomerForm customer={selectedCustomer} />
+          <CustomerForm
+            customer={selectedCustomer}
+            reload={reload}
+            key={formKey}
+            handleUpdatedCustomer={handleUpdatedCustomer}
+          />
         </BaseModal>
       )}
     </div>

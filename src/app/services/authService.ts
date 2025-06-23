@@ -1,3 +1,5 @@
+import { showErrorMessage } from "../utils/alertHelper";
+
 interface RegisterData {
   username: string;
   password: string;
@@ -27,7 +29,7 @@ interface UserData {
   id: number;
 }
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = "http://localhost:8080/api";
 
 let authStateChangeCallback: (() => void) | null = null;
 
@@ -35,19 +37,19 @@ export const authService = {
   async register(data: RegisterData): Promise<void> {
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
+        throw new Error(error.message || "Registration failed");
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      showErrorMessage("Registration error:" + error);
       throw error;
     }
   },
@@ -55,27 +57,27 @@ export const authService = {
   async login(data: LoginData): Promise<LoginResponse> {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Login failed');
+        throw new Error(error.message || "Login failed");
       }
 
       const loginData: LoginResponse = await response.json();
-      console.log('Login response:', loginData);
-      
+      console.log("Login response:", loginData);
+
       // Store the token and user data in localStorage
-      localStorage.setItem('token', loginData.token);
-      localStorage.setItem('username', loginData.username);
-      localStorage.setItem('role', loginData.role);
-      localStorage.setItem('fullName', loginData.fullName);
-      localStorage.setItem('userId', loginData.userId.toString());
+      localStorage.setItem("token", loginData.token);
+      localStorage.setItem("username", loginData.username);
+      localStorage.setItem("role", loginData.role);
+      localStorage.setItem("fullName", loginData.fullName);
+      localStorage.setItem("userId", loginData.userId.toString());
 
       // Notify about auth state change
       if (authStateChangeCallback) {
@@ -84,17 +86,17 @@ export const authService = {
 
       return loginData;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       throw error;
     }
   },
 
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('role');
-    localStorage.removeItem('fullName');
-    localStorage.removeItem('userId');
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    localStorage.removeItem("fullName");
+    localStorage.removeItem("userId");
 
     // Notify about auth state change
     if (authStateChangeCallback) {
@@ -103,16 +105,16 @@ export const authService = {
   },
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return localStorage.getItem("token");
   },
 
   getUserData(): UserData | null {
-    const username = localStorage.getItem('username');
-    const role = localStorage.getItem('role');
-    const fullName = localStorage.getItem('fullName');
-    const userId = localStorage.getItem('userId');
+    const username = localStorage.getItem("username");
+    const role = localStorage.getItem("role");
+    const fullName = localStorage.getItem("fullName");
+    const userId = localStorage.getItem("userId");
 
-    console.log('Getting user data:', { username, role, fullName, userId }); // Debug log
+    console.log("Getting user data:", { username, role, fullName, userId }); // Debug log
 
     if (!username || !role || !fullName) {
       return null;
@@ -122,10 +124,10 @@ export const authService = {
       username,
       role,
       fullName,
-      id: userId ? parseInt(userId, 10) : 0
+      id: userId ? parseInt(userId, 10) : 0,
     };
 
-    console.log('Returning user data:', userData); // Debug log
+    console.log("Returning user data:", userData); // Debug log
     return userData;
   },
 
@@ -135,9 +137,9 @@ export const authService = {
 
   getInitials(fullName: string): string {
     return fullName
-      .split(' ')
-      .map(word => word[0])
-      .join('')
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   },
@@ -148,5 +150,5 @@ export const authService = {
 
   removeAuthStateChangeListener(): void {
     authStateChangeCallback = null;
-  }
-}; 
+  },
+};

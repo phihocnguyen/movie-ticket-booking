@@ -125,6 +125,42 @@ export const del = async (path: string, auth = false): Promise<any> => {
 //     alert(`Lỗi khi gọi API: ${error.message}`);
 //   }
 // };
+export const patch = async (
+  values: any,
+  path: string,
+  auth = true
+): Promise<any> => {
+  try {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+
+    // Gắn token nếu cần xác thực
+    if (auth) {
+      const token = localStorage.getItem("accessToken");
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(API_DOMAIN + path, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(values),
+    });
+
+    // Dù response.ok hay không, luôn cố parse JSON nếu có
+    const result = await response.json();
+    if (response.ok) {
+      return result; // Có thể trả object hoặc true
+    } else {
+      showErrorMessage(result.message);
+      return;
+    }
+  } catch (error: any) {
+    showErrorMessage(`Lỗi khi gọi API: ${error.message}`);
+    return null;
+  }
+};
 export const put = async (
   values: any,
   path: string,
@@ -153,7 +189,8 @@ export const put = async (
     if (response.ok) {
       return result; // Có thể trả object hoặc true
     } else {
-      return result.message;
+      showErrorMessage(result.message);
+      return;
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message}`);
