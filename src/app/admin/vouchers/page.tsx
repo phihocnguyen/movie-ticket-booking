@@ -14,20 +14,28 @@ import {
 import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import VoucherForm from "./components/VoucherForm";
+import {
+  deleteVoucher,
+  getAllVouchers,
+} from "@/app/services/admin/voucherService";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
 
 export interface Voucher {
-  id: string;
+  id: number;
   code: string;
-  title: string;
   description: string;
-  discount_value: number;
-  min_order_value: number;
-  release_date: string;
-  expire_date: string;
-  quantity: number;
-  claimed: number;
-  is_active: boolean;
-  type: "new_user" | "seasonal" | "referral" | "general";
+  discountAmount: number;
+  minPrice: number;
+  startDate: string;
+  endDate: string;
+  type: "new_user" | "seasonal";
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
 }
 
 export default function Vouchers() {
@@ -38,55 +46,57 @@ export default function Vouchers() {
   const [showModal, setShowModal] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [typeVoucher, setTypeVoucher] = useState("");
-
-  const mockVouchers: Voucher[] = [
-    {
-      id: "1",
-      code: "SALE50",
-      title: "Giảm 50% cho đơn hàng đầu tiên",
-      description: "Áp dụng cho đơn hàng tối thiểu 100k.",
-      discount_value: 50,
-      min_order_value: 100000,
-      release_date: "2025-06-20",
-      expire_date: "2025-07-01",
-      quantity: 100,
-      claimed: 40,
-      is_active: true,
-      type: "new_user",
-    },
-    {
-      id: "2",
-      code: "SUMMER20",
-      title: "Ưu đãi mùa hè 20%",
-      description: "Giảm giá cho toàn bộ khách hàng mùa hè này.",
-      discount_value: 20,
-      min_order_value: 50000,
-      release_date: "2025-06-15",
-      expire_date: "2025-07-31",
-      quantity: 200,
-      claimed: 100,
-      is_active: true,
-      type: "seasonal",
-    },
-  ];
+  const [allVoucher, setAllVoucher] = useState<Voucher[]>([]);
+  const [formKey, setFormKey] = useState(Date.now());
+  const reload = async () => {
+    try {
+      const res = await getAllVouchers();
+      console.log("Check res", res);
+      if (res === null) {
+        setAllVoucher([]);
+      } else {
+        const data = res.data;
+        setAllVoucher(data);
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi lấy danh sách voucher:" + error);
+    }
+  };
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await getAllVouchers();
+        console.log("Check res", res);
+        if (res === null) {
+          setAllVoucher([]);
+        } else {
+          const data = res.data;
+          setAllVoucher(data);
+        }
+      } catch (error) {
+        showErrorMessage("Lỗi khi lấy danh sách voucher:" + error);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   // Lấy ra mảng ["new_user","seasonal",...]
-  const voucherTypes = Array.from(new Set(mockVouchers.map((v) => v.type)));
+  const voucherTypes = Array.from(new Set(allVoucher.map((v) => v.type)));
   const filtered = useMemo(() => {
-    return mockVouchers
+    return allVoucher
       .filter((voucher) => {
         const matchesSearch =
-          voucher.title.toLowerCase().includes(search.toLowerCase()) ||
+          voucher.description.toLowerCase().includes(search.toLowerCase()) ||
           voucher.code.toLowerCase().includes(search.toLowerCase());
         const matchesType = typeVoucher ? voucher.type === typeVoucher : true;
         return matchesSearch && matchesType;
       })
       .sort((a, b) =>
         sortOrder === "asc"
-          ? a.discount_value - b.discount_value
-          : b.discount_value - a.discount_value
+          ? a.discountAmount - b.discountAmount
+          : b.discountAmount - a.discountAmount
       );
-  }, [search, sortOrder, typeVoucher]);
+  }, [search, sortOrder, typeVoucher, allVoucher]);
 
   const paginatedVouchers = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -101,7 +111,29 @@ export default function Vouchers() {
   const toggleSort = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
-
+  const handleDelete = async (voucherId: number) => {
+    const voucher = allVoucher.find((v) => v.id === voucherId);
+    if (voucher && voucher.usedCount && Number(voucher.usedCount) > 0) {
+      showErrorMessage("Voucher đã có người lấy hoặc sử dụng, không thể xóa!");
+      return;
+    }
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa phim này không?"
+    );
+    if (!confirmed) return;
+    try {
+      const result = await deleteVoucher(voucherId);
+      if (!result) {
+        return;
+      }
+      setAllVoucher((prev) =>
+        prev.filter((voucher) => voucher.id !== voucherId)
+      );
+      showSuccess("Xóa voucher thành công!");
+    } catch (error) {
+      showErrorMessage("Xóa voucher thất bại!" + error);
+    }
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
@@ -131,6 +163,7 @@ export default function Vouchers() {
           onClick={() => {
             setSelectedVoucher(null);
             setShowModal(true);
+            setFormKey(Date.now());
           }}
         >
           <Plus /> Thêm
@@ -143,12 +176,14 @@ export default function Vouchers() {
               <TableHead className="px-4 py-4">STT</TableHead>
               <TableHead className="px-4 py-4">Mã</TableHead>
               <TableHead className="px-4 py-4">Tiêu đề</TableHead>
-              <TableHead className="px-4 py-4">Phần trăm giảm</TableHead>
+              <TableHead className="px-4 py-4">
+                Giá trị đơn hàng tối thiểu
+              </TableHead>
               <TableHead
                 onClick={toggleSort}
                 className="flex items-center justify-start px-4 py-4 mt-1.5 cursor-pointer select-none gap-1"
               >
-                Giảm giá
+                Phần trăm giảm
                 {sortOrder === "asc" ? (
                   <IoMdArrowDropdown className="w-5 h-5 mt-0.5" />
                 ) : (
@@ -160,7 +195,7 @@ export default function Vouchers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedVouchers.length === 0 ? (
+            {paginatedVouchers?.length === 0 ? (
               <TableRow className="hover:bg-white">
                 <TableCell
                   colSpan={6}
@@ -179,12 +214,14 @@ export default function Vouchers() {
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
                   <TableCell className="px-4 py-4">{voucher.code}</TableCell>
-                  <TableCell className="px-4 py-4">{voucher.title}</TableCell>
                   <TableCell className="px-4 py-4">
-                    {voucher.discount_value}%
+                    {voucher.description}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {voucher.min_order_value.toLocaleString()}đ
+                    {voucher.minPrice.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
+                    {voucher.discountAmount}%
                   </TableCell>
                   <TableCell className="px-4 py-4">{voucher.type}</TableCell>
                   <TableCell className="px-4 py-4">
@@ -196,7 +233,10 @@ export default function Vouchers() {
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => handleDelete(voucher.id)}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -221,7 +261,12 @@ export default function Vouchers() {
           title={selectedVoucher ? "Chi tiết voucher" : "Thêm voucher mới"}
           onClose={() => setShowModal(false)}
         >
-          <VoucherForm voucher={selectedVoucher} />
+          <VoucherForm
+            voucher={selectedVoucher}
+            reload={reload}
+            key={formKey}
+            setShowModal={setShowModal}
+          />
         </BaseModal>
       )}
     </div>
