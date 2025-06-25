@@ -123,30 +123,6 @@ export const del = async (path: string, auth = false): Promise<any> => {
   }
 };
 
-// export const patch = async (value, path, auth = true) => {
-//   try {
-//     const headers = {
-//       "Content-type": "application/json",
-//       Accept: "application/json",
-//     };
-//     if (auth) {
-//       const token = localStorage.getItem("accessToken");
-//       if (token) headers.Authorization = `Bearer ${token}`;
-//     }
-//     const response = await fetch(API_DOMAIN + path, {
-//       method: "PATCH",
-//       headers,
-//       body: JSON.stringify(value),
-//     });
-//     if (!response.ok) {
-//       throw new Error(`Lỗi: ${response.status}`);
-//     }
-//     const result = await response.json();
-//     return result;
-//   } catch (error) {
-//     alert(`Lỗi khi gọi API: ${error.message}`);
-//   }
-// };
 export const patch = async (
   values: any,
   path: string,

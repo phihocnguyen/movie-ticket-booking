@@ -1,42 +1,123 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import {
+  getByAdmin,
+  createSystemSetting,
+  editSystemSetting,
+} from "@/app/services/admin/systemService";
+import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
 
 interface SystemSettings {
-  commissionPercent: number;
-  maxVoucherPerType: number;
+  id: number | null;
+  ownerId: number | null;
+  commissionRate: number | null;
+  maxVoucherPerType: number | null;
+  cancelFee: number | null;
+  cancelTimeLimit: number | null;
+  priceSeatRegular: number | null;
+  priceSeatVip: number | null;
+  priceSeatDouble: number | null;
 }
 
-const initialData: SystemSettings = {
-  commissionPercent: 5,
-  maxVoucherPerType: 100,
+const emptySystemSettings: SystemSettings = {
+  id: null,
+  ownerId: null,
+  commissionRate: null,
+  maxVoucherPerType: null,
+  cancelFee: null,
+  cancelTimeLimit: null,
+  priceSeatRegular: null,
+  priceSeatVip: null,
+  priceSeatDouble: null,
 };
 
 export default function SystemSettingsPage() {
-  const [data, setData] = useState<SystemSettings>(initialData);
-  const [form, setForm] = useState<SystemSettings>(initialData);
+  const [data, setData] = useState<SystemSettings>();
   const [editing, setEditing] = useState(false);
+  const [hasSetting, setHasSetting] = useState(false);
+  const [form, setForm] = useState<SystemSettings>(emptySystemSettings);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await getByAdmin();
+        if (res && res.data) {
+          setData(res.data);
+          setForm(res.data);
+          setHasSetting(true);
+        } else {
+          setHasSetting(false);
+        }
+      } catch (e) {
+        setHasSetting(false);
+        showErrorMessage("Lỗi khi lấy dữ liệu");
+        return;
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     field: keyof SystemSettings
   ) => {
-    const value = Number(e.target.value);
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, [field]: value === "" ? null : value }));
   };
 
-  const handleSave = () => {
-    // TODO: Call API here
-    setData(form);
-    setEditing(false);
+  const validateForm = () => {
+    // commissionRate
+    if (
+      form.commissionRate === null ||
+      String(form.commissionRate) === "" ||
+      isNaN(Number(form.commissionRate))
+    ) {
+      showErrorMessage("Tỷ lệ hoa hồng phải là số và không được để trống");
+      return false;
+    } else if (Number(form.commissionRate) <= 0) {
+      showErrorMessage("Tỷ lệ hoa hồng phải lớn hơn 0");
+      return false;
+    }
+    // maxVoucherPerType
+    if (
+      form.maxVoucherPerType === null ||
+      String(form.maxVoucherPerType) === "" ||
+      isNaN(Number(form.maxVoucherPerType))
+    ) {
+      showErrorMessage("Số lượng voucher phải là số và không được để trống");
+      return false;
+    } else if (Number(form.maxVoucherPerType) <= 0) {
+      showErrorMessage("Số lượng voucher phải lớn hơn 0");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+    try {
+      if (!hasSetting) {
+        await createSystemSetting(form);
+        setHasSetting(true);
+      } else {
+        await editSystemSetting(form);
+      }
+      setData(form);
+      setEditing(false);
+      showSuccess("Cấu hình hệ thống đã được lưu thành công");
+    } catch (e) {
+      showErrorMessage("Lỗi khi lưu" + e);
+      return;
+    }
   };
 
   const handleCancel = () => {
-    setForm(data);
+    setForm(data ?? emptySystemSettings);
     setEditing(false);
   };
 
@@ -49,7 +130,7 @@ export default function SystemSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Commission Percent */}
+          {/* Commission Rate */}
           <div className="grid grid-cols-12 items-center gap-4">
             <label
               htmlFor="commission"
@@ -60,11 +141,9 @@ export default function SystemSettingsPage() {
 
             <input
               id="commission"
-              type="number"
-              min={0}
-              step={0.1}
-              value={form.commissionPercent}
-              onChange={(e) => handleChange(e, "commissionPercent")}
+              type="text"
+              value={form.commissionRate ?? ""}
+              onChange={(e) => handleChange(e, "commissionRate")}
               className="col-span-5 border rounded-[8px] px-4 py-2 focus:ring-0 focus:border-[#1677ff] outline-none"
               disabled={!editing}
             />
@@ -81,9 +160,9 @@ export default function SystemSettingsPage() {
 
             <input
               id="voucher"
-              type="number"
+              type="text"
               min={1}
-              value={form.maxVoucherPerType}
+              value={form.maxVoucherPerType ?? ""}
               onChange={(e) => handleChange(e, "maxVoucherPerType")}
               className="col-span-5 border rounded-[8px] px-4 py-2 focus:ring-0 focus:border-[#1677ff] outline-none"
               disabled={!editing}

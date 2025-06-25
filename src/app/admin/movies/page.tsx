@@ -14,149 +14,35 @@ import {
 import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import MovieForm from "./components/MovieForm";
+import {
+  deleteMovie,
+  getAllMovies,
+  getShowtimeById,
+} from "@/app/services/admin/movieSercive";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
 
 export interface Movie {
   id: number;
   title: string;
-  title_vi: string;
+  titleVi: string;
   description: string;
-  duration: string;
+  duration: number;
   language: string;
   genre: string;
-  release_date: string;
-  poster_url: File | null;
-  backdrop_url: File | null;
-  trailer_url: File | null;
+  releaseDate: string;
+  posterUrl: string;
+  backdropUrl: string;
+  trailerUrl: string;
   director: string;
   actor: string;
   rating: number;
   country: string;
+  isActive?: boolean;
 }
-const mockMovies: Movie[] = [
-  {
-    id: 1,
-    title: "Inception",
-    title_vi: "Giấc Mơ Trong Giấc Mơ",
-    description: "A thief who steals corporate secrets through dream-sharing.",
-    duration: "148",
-    language: "English",
-    genre: "Sci-Fi",
-    release_date: "2010-07-16",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Christopher Nolan",
-    actor: "Leonardo DiCaprio",
-    rating: 8.8,
-    country: "USA",
-  },
-  {
-    id: 2,
-    title: "Parasite",
-    title_vi: "Ký Sinh Trùng",
-    description:
-      "A poor family schemes to become employed by a wealthy family.",
-    duration: "132",
-    language: "Korean",
-    genre: "Thriller",
-    release_date: "2019-05-30",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Bong Joon-ho",
-    actor: "Song Kang-ho",
-    rating: 8.6,
-    country: "Korea",
-  },
-  {
-    id: 3,
-    title: "Interstellar",
-    title_vi: "Hố Đen Tử Thần",
-    description:
-      "A team travels through a wormhole to find a new home for humanity.",
-    duration: "169",
-    language: "English",
-    genre: "Sci-Fi",
-    release_date: "2014-11-07",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Christopher Nolan",
-    actor: "Matthew McConaughey",
-    rating: 8.7,
-    country: "USA",
-  },
-  {
-    id: 4,
-    title: "Oldboy",
-    title_vi: "Báo Thù",
-    description: "After being imprisoned for 15 years, a man seeks revenge.",
-    duration: "120",
-    language: "Korean",
-    genre: "Thriller",
-    release_date: "2003-11-21",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Park Chan-wook",
-    actor: "Choi Min-sik",
-    rating: 8.4,
-    country: "Korea",
-  },
-  {
-    id: 5,
-    title: "The Host",
-    title_vi: "Quái Vật Sông Hàn",
-    description: "A monster emerges from Seoul's Han River and abducts a girl.",
-    duration: "119",
-    language: "Korean",
-    genre: "Sci-Fi",
-    release_date: "2006-07-27",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Bong Joon-ho",
-    actor: "Song Kang-ho",
-    rating: 7.9,
-    country: "Korea",
-  },
-  {
-    id: 6,
-    title: "Memento",
-    title_vi: "Kẻ Mất Trí Nhớ",
-    description:
-      "A man with short-term memory loss uses notes and tattoos to hunt for his wife's killer.",
-    duration: "113",
-    language: "English",
-    genre: "Thriller",
-    release_date: "2000-10-11",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Christopher Nolan",
-    actor: "Guy Pearce",
-    rating: 8.4,
-    country: "USA",
-  },
-  {
-    id: 7,
-    title: "Memento",
-    title_vi: "Kẻ Mất Trí Nhớ",
-    description:
-      "A man with short-term memory loss uses notes and tattoos to hunt for his wife's killer.",
-    duration: "113",
-    language: "English",
-    genre: "Thriller",
-    release_date: "2000-10-11",
-    poster_url: null,
-    backdrop_url: null,
-    trailer_url: null,
-    director: "Christopher Nolan",
-    actor: "Guy Pearce",
-    rating: 8.4,
-    country: "USA",
-  },
-];
 
 export default function Movies() {
   const [search, setSearch] = useState("");
@@ -167,9 +53,42 @@ export default function Movies() {
   const [pageSize, setPageSize] = useState(6);
   const [showModal, setShowModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-
+  const [allMovie, setAllMovie] = useState<Movie[]>([]);
+  const [formKey, setFormKey] = useState(Date.now());
+  const reload = async () => {
+    try {
+      const res = await getAllMovies();
+      console.log("Check res", res);
+      if (res === null) {
+        setAllMovie([]);
+      } else {
+        const data = res.data;
+        setAllMovie(data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách user:", error);
+    }
+  };
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await getAllMovies();
+        console.log("Check res", res);
+        if (res === null) {
+          setAllMovie([]);
+        } else {
+          const data = res.data;
+          setAllMovie(data);
+        }
+      } catch (error) {
+        showErrorMessage("Lỗi khi lấy danh sách user:" + error);
+      }
+    };
+    fetchUsers();
+  }, []);
+  console.log("Check allMovie", allMovie);
   const filtered = useMemo(() => {
-    return mockMovies
+    return allMovie
       .filter((movie) => {
         const matchesSearch =
           movie.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -181,8 +100,16 @@ export default function Movies() {
       .sort((a, b) =>
         sortOrder === "asc" ? a.rating - b.rating : b.rating - a.rating
       );
-  }, [search, genre, country, sortOrder]);
+  }, [search, genre, country, sortOrder, allMovie]);
+  const uniqueGenreList = useMemo(() => {
+    const genres = allMovie.map((movie) => movie.genre).filter(Boolean);
+    return Array.from(new Set(genres)); // loại bỏ trùng lặp
+  }, [allMovie]);
 
+  const uniqueCountryList = useMemo(() => {
+    const countries = allMovie.map((movie) => movie.country).filter(Boolean);
+    return Array.from(new Set(countries)); // loại bỏ trùng
+  }, [allMovie]);
   const paginatedMovies = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
@@ -197,6 +124,32 @@ export default function Movies() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
+  const handleDelete = async (movieId: number) => {
+    // Kiểm tra showtime trước khi xóa
+    const showtimeRes = await getShowtimeById(movieId);
+    if (
+      showtimeRes &&
+      Array.isArray(showtimeRes.data) &&
+      showtimeRes.data.length > 0
+    ) {
+      showErrorMessage("Không thể xóa phim đã có suất chiếu!");
+      return;
+    }
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa phim này không?"
+    );
+    if (!confirmed) return;
+    try {
+      const result = await deleteMovie(movieId);
+      if (!result) {
+        return;
+      }
+      setAllMovie((prev) => prev.filter((owner) => owner.id !== movieId));
+      showSuccess("Xóa phim thành công!");
+    } catch (error) {
+      showErrorMessage("Xóa phim thất bại!" + error);
+    }
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
@@ -215,8 +168,11 @@ export default function Movies() {
             className="w-full md:w-1/4 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Chọn thể loại</option>
-            <option value="Sci-Fi">Sci-Fi</option>
-            <option value="Thriller">Thriller</option>
+            {uniqueGenreList.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
           </select>
           <select
             value={country}
@@ -224,8 +180,11 @@ export default function Movies() {
             className="w-full md:w-1/4 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Chọn quốc gia</option>
-            <option value="USA">USA</option>
-            <option value="Korea">Korea</option>
+            {uniqueCountryList.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
         <button
@@ -233,6 +192,7 @@ export default function Movies() {
           onClick={() => {
             setSelectedMovie(null);
             setShowModal(true);
+            setFormKey(Date.now());
           }}
         >
           <Plus /> Thêm
@@ -290,12 +250,27 @@ export default function Movies() {
                     <div className="flex gap-2 items-center">
                       <Eye
                         className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
-                        onClick={() => {
+                        onClick={async () => {
+                          // Kiểm tra showtime trước khi cho sửa
+                          const showtimeRes = await getShowtimeById(movie.id);
+                          if (
+                            showtimeRes &&
+                            Array.isArray(showtimeRes.data) &&
+                            showtimeRes.data.length > 0
+                          ) {
+                            showErrorMessage(
+                              "Không thể sửa phim đã có suất chiếu!"
+                            );
+                            return;
+                          }
                           setSelectedMovie(movie);
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => handleDelete(movie.id)}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -323,7 +298,13 @@ export default function Movies() {
           title={selectedMovie ? "Chi tiết phim" : "Thêm phim mới"}
           onClose={() => setShowModal(false)}
         >
-          <MovieForm movie={selectedMovie} /> {/* props tùy bạn định nghĩa */}
+          <MovieForm
+            movie={selectedMovie}
+            reload={reload}
+            setShowModal={setShowModal}
+            key={formKey}
+          />{" "}
+          {/* props tùy bạn định nghĩa */}
         </BaseModal>
       )}
     </div>

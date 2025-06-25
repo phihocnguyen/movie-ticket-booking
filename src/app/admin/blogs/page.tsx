@@ -61,22 +61,26 @@ export default function Blogs() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
-
+  const [typeBlog, setTypeBlog] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
 
   /* ---------- FILTER + SORT ---------- */
   const filtered = useMemo(() => {
     return mockBlogs
-      .filter((b) =>
-        `${b.title} ${b.author}`.toLowerCase().includes(search.toLowerCase())
-      )
+      .filter((b) => {
+        const matchesSearch =
+          b.title.toLowerCase().includes(search.toLowerCase()) ||
+          b.author.toLowerCase().includes(search.toLowerCase());
+        const matchesType = typeBlog ? b.type === typeBlog : true;
+        return matchesSearch && matchesType;
+      })
       .sort((a, b) =>
         sortOrder === "asc"
           ? a.title.localeCompare(b.title)
           : b.title.localeCompare(a.title)
       );
-  }, [search, sortOrder]);
+  }, [search, sortOrder, typeBlog]);
 
   /* ---------- PAGINATION ---------- */
   const paginated = filtered.slice(
@@ -84,10 +88,10 @@ export default function Blogs() {
     currentPage * pageSize
   );
   const totalPages = Math.ceil(filtered.length / pageSize);
-
+  const blogTypes = Array.from(new Set(mockBlogs.map((b) => b.type)));
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, pageSize]);
+  }, [search, pageSize, typeBlog]);
 
   /* ---------- HANDLERS ---------- */
   const toggleSort = () =>
@@ -98,14 +102,27 @@ export default function Blogs() {
     <div className="space-y-5">
       {/* SEARCH & NEW BUTTON */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-        <input
-          type="text"
-          placeholder="Tìm kiếm bài viết theo tiêu đề hoặc tác giả..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
-        />
-
+        <div className="flex gap-4 w-full">
+          <input
+            type="text"
+            placeholder="Tìm kiếm bài viết theo tiêu đề hoặc tác giả..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+          />
+          <select
+            value={typeBlog}
+            onChange={(e) => setTypeBlog(e.target.value)}
+            className="w-full md:w-1/4 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Tất cả loại</option>
+            {blogTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           className="flex gap-2.5 border px-10 py-1.5 rounded-[8px] bg-[#432DD7] text-white"
           onClick={() => {

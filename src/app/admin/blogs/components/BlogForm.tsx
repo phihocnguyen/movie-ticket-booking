@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BlogPost } from "../page"; // <-- interface mới bạn khai ở page
 import { SquarePen } from "lucide-react";
 import dayjs from "dayjs";
+import TextEditor from "@/app/admin/components/TextEditor";
 
 /* ===== props ===== */
 interface BlogFormProps {
@@ -176,18 +177,14 @@ export default function BlogForm({ post }: BlogFormProps) {
           <label className="w-[20%] text-[15px]" htmlFor="content">
             Nội dung
           </label>
-          <textarea
-            id="content"
-            name="content"
-            placeholder="Nội dung markdown / HTML"
-            value={form.content}
-            onChange={handleChange}
-            className="w-[80%] border px-2 py-1.5 rounded-[8px] resize-y text-[15px]
-                       focus:ring-0 focus:border-[#1677ff] outline-none"
-            rows={6}
-            required
-            disabled={disable}
-          />
+          <div className="w-[80%]">
+            <TextEditor
+              value={form.content}
+              onChange={(val) => setForm((prev) => ({ ...prev, content: val }))}
+              disabled={disable}
+              height={500}
+            />
+          </div>
         </div>
 
         {/* created_at  */}
