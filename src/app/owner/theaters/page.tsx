@@ -15,6 +15,7 @@ import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import TheaterForm from "./components/TheaterForm";
 import { useRouter } from "next/navigation";
+import { getAllTheaters } from "@/app/services/owner/theaterService";
 
 /* ────────────────── INTERFACE ────────────────── */
 export interface Theater {
@@ -24,59 +25,13 @@ export interface Theater {
   city: string;
   state: string;
   country: string;
-  zip_code: string;
-  phone_number: string;
+  zipCode: string;
+  phoneNumber: string;
   email: string;
-  opening_time: string; // "08:00"
-  closing_time: string; // "22:00"
-  total_screens: number;
+  openingTime: string;
+  closingTime: string;
+  totalScreens: number;
 }
-
-/* ────────────────── MOCK DATA ────────────────── */
-const mockTheaters: Theater[] = [
-  {
-    id: 1,
-    name: "Galaxy Nguyễn Trãi",
-    address: "116 Nguyễn Trãi",
-    city: "Hồ Chí Minh",
-    state: "Hồ Chí Minh",
-    country: "Việt Nam",
-    zip_code: "700000",
-    phone_number: "028 3930 9999",
-    email: "support@galaxy.vn",
-    opening_time: "08:00",
-    closing_time: "23:00",
-    total_screens: 8,
-  },
-  {
-    id: 2,
-    name: "CGV Vincom Bà Triệu",
-    address: "191 Bà Triệu",
-    city: "Hà Nội",
-    state: "Hà Nội",
-    country: "Việt Nam",
-    zip_code: "100000",
-    phone_number: "024 3974 6789",
-    email: "cgv@cgv.vn",
-    opening_time: "09:00",
-    closing_time: "22:30",
-    total_screens: 10,
-  },
-  {
-    id: 3,
-    name: "Lotte Cinema Cộng Hòa",
-    address: "20 Cộng Hòa",
-    city: "Hồ Chí Minh",
-    state: "Hồ Chí Minh",
-    country: "Việt Nam",
-    zip_code: "700000",
-    phone_number: "028 3811 1111",
-    email: "lotte@lotte.vn",
-    opening_time: "08:30",
-    closing_time: "23:30",
-    total_screens: 6,
-  },
-];
 
 /* ────────────────── PAGE COMPONENT ────────────────── */
 export default function Theaters() {
@@ -88,27 +43,42 @@ export default function Theaters() {
   const [showModal, setShowModal] = useState(false);
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null);
   const router = useRouter();
+  const [theaters, setTheaters] = useState<Theater[]>([]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    // Có thể kiểm tra thêm role nếu cần
     if (!token) {
-      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+      router.replace("/login");
     }
   }, []);
+
+  const fetchTheaters = async () => {
+    const res = await getAllTheaters();
+    if (res && res.statusCode === 200 && Array.isArray(res.data)) {
+      setTheaters(res.data);
+    } else {
+      setTheaters([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchTheaters();
+  }, []);
+
   /* ---------- FILTER + SORT ---------- */
   const filtered = useMemo(() => {
-    return mockTheaters
-      .filter((t) =>
-        `${t.name} ${t.city} ${t.phone_number}`
+    return theaters
+      .filter((t: Theater) =>
+        `${t.name} ${t.city} ${t.phoneNumber}`
           .toLowerCase()
           .includes(search.toLowerCase())
       )
-      .sort((a, b) =>
+      .sort((a: Theater, b: Theater) =>
         sortOrder === "asc"
-          ? a.total_screens - b.total_screens
-          : b.total_screens - a.total_screens
+          ? a.totalScreens - b.totalScreens
+          : b.totalScreens - a.totalScreens
       );
-  }, [search, sortOrder]);
+  }, [search, sortOrder, theaters]);
 
   /* ---------- PAGINATION ---------- */
   const paginated = filtered.slice(
@@ -181,15 +151,15 @@ export default function Theaters() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((t, index) => (
+              paginated.map((t: Theater, index: number) => (
                 <TableRow key={t.id} className="hover:bg-gray-100 transition">
                   <TableCell className="px-4 py-4">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
                   <TableCell className="px-4 py-4">{t.name}</TableCell>
                   <TableCell className="px-4 py-4">{t.city}</TableCell>
-                  <TableCell className="px-4 py-4">{t.phone_number}</TableCell>
-                  <TableCell className="px-4 py-4">{t.total_screens}</TableCell>
+                  <TableCell className="px-4 py-4">{t.phoneNumber}</TableCell>
+                  <TableCell className="px-4 py-4">{t.totalScreens}</TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2">
                       <Eye
@@ -222,15 +192,17 @@ export default function Theaters() {
       />
 
       {/* MODAL */}
-      {showModal && (
-        <BaseModal
-          open={showModal}
-          title={selectedTheater ? "Chi tiết rạp" : "Thêm rạp mới"}
+      <BaseModal
+        open={showModal}
+        title={selectedTheater ? "Chi tiết rạp" : "Thêm rạp mới"}
+        onClose={() => setShowModal(false)}
+      >
+        <TheaterForm
+          theater={selectedTheater || undefined}
           onClose={() => setShowModal(false)}
-        >
-          <TheaterForm theater={selectedTheater} />
-        </BaseModal>
-      )}
+          fetchTheaters={fetchTheaters}
+        />
+      </BaseModal>
     </div>
   );
 }

@@ -54,7 +54,7 @@ const items = [
   },
   {
     title: "Theater Management",
-    url: "/owner/Theater",
+    url: "/owner/theaters",
     icon: PiNewspaperClippingLight,
   },
   {

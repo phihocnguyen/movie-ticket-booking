@@ -22,10 +22,15 @@ interface SelectedSeat {
 interface SeatData {
   id: number;
   seatNumber: string;
-  seatTypeId: number;
   isActive: boolean;
-  seatTypeName: string;
-  priceMultiplier: number;
+  isAvailable: boolean;
+  seatType: {
+    id: number;
+    name: string;
+    description: string;
+    priceMultiplier: number;
+    isActive: boolean;
+  };
 }
 
 const SeatSelection = ({
@@ -52,7 +57,7 @@ const SeatSelection = ({
       try {
         const response = await axiosInstance.get(`/seats/screen/${screenId}`);
         console.log('Fetched seats:', response.data);
-        setSeats(response.data);
+        setSeats(response.data?.data || []);
       } catch (error) {
         console.error('Error fetching seats:', error);
       }
@@ -156,17 +161,13 @@ const SeatSelection = ({
       rows[row].push(seat);
     });
 
-    const sortedRows = Object.keys(rows).sort((a, b) => {
-      if (a.length === 1 && b.length === 1) {
-        return a.localeCompare(b);
-      }
-      if (a.length === 1) return -1;
-      if (b.length === 1) return 1;
-      return a.localeCompare(b);
-    });
+    const sortedRows = Object.keys(rows).sort((a, b) => a.localeCompare(b));
 
     return (
-      <div className="overflow-x-auto">
+      <div
+        className="overflow-x-auto"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', overflowX: 'auto' }}
+      >
         <div className="min-w-[600px] px-4">
           <div className="flex flex-col gap-1 text-center">
             {sortedRows.map(row => {
@@ -177,30 +178,44 @@ const SeatSelection = ({
               });
 
               const seatElements = [];
-              for (let i = 0; i < seatsInRow.length; i++) {
+              for (let i = 0; i < seatsInRow.length; ) {
                 const seat = seatsInRow[i];
-                const { row, number } = parseSeatNumber(seat.seatNumber);
-                const type = getSeatType(seat.seatTypeId);
+                const { row: rowLabel, number } = parseSeatNumber(seat.seatNumber);
+                const type = seat.seatType.name.toLowerCase();
 
-                if (type === 'couple') {
+                // Ghép cặp couple
+                if (
+                  type === 'couple' &&
+                  i + 1 < seatsInRow.length &&
+                  seatsInRow[i + 1].seatType.name.toLowerCase() === 'couple'
+                ) {
                   seatElements.push(
-                    <div key={seat.id} className="h-8 flex items-center justify-center flex-[2_2_0%] max-w-[112px] min-w-[56px]">
-                      {renderSeat(row, number, type, !seat.isActive, seat.id)}
+                    <div
+                      key={seat.id}
+                      className="h-8 flex items-center justify-center"
+                      style={{ minWidth: 112, maxWidth: 112, margin: '0 8px' }}
+                    >
+                      {renderSeat(rowLabel, number, type, !seat.isAvailable, seat.id, true)}
                     </div>
                   );
-                  i++; 
+                  i += 2;
                 } else {
                   seatElements.push(
-                    <div key={seat.id} className="h-8 flex items-center justify-center flex-1 min-w-[56px] max-w-[56px]">
-                      {renderSeat(row, number, type, !seat.isActive, seat.id)}
+                    <div
+                      key={seat.id}
+                      className="h-8 flex items-center justify-center"
+                      style={{ minWidth: 56, maxWidth: 56, margin: '0 4px' }}
+                    >
+                      {renderSeat(rowLabel, number, type, !seat.isAvailable, seat.id)}
                     </div>
                   );
+                  i += 1;
                 }
               }
               return (
-                <div key={row} className="flex items-center gap-1 mb-1">
+                <div key={row} className="flex items-center gap-1 mb-1 justify-center">
                   <div className="w-8 flex-shrink-0 flex items-center justify-center text-gray-500 font-medium">{row}</div>
-                  <div className="flex flex-1 justify-between gap-1">{seatElements}</div>
+                  <div className="flex flex-1 justify-center gap-1">{seatElements}</div>
                   <div className="w-8 flex-shrink-0 flex items-center justify-center text-gray-500 font-medium">{row}</div>
                 </div>
               );
@@ -211,46 +226,44 @@ const SeatSelection = ({
     );
   };
 
-  const renderSeat = (row: string, number: number, type: 'standard' | 'vip' | 'couple', disabled = false, seatId: number) => {
+  const renderSeat = (row: string, number: number, type: string, disabled = false, seatId: number, isCoupleGroup = false) => {
     const isSelected = isSeatSelected(seatId);
-    
     let bgColor = '';
-    let textColor = 'text-gray-700';
+    let textColor = isSelected ? 'text-white' : 'text-gray-700';
     let seatType = '';
     
+    switch (type.toLowerCase()) {
+      case 'standard':
+        bgColor = isSelected ? 'bg-indigo-600' : 'bg-blue-100 hover:bg-blue-200';
+        seatType = 'STD';
+        break;
+      case 'vip':
+        bgColor = isSelected ? 'bg-indigo-600' : 'bg-purple-100 hover:bg-purple-200';
+        seatType = 'VIP';
+        break;
+      case 'couple':
+        bgColor = isSelected ? 'bg-indigo-600' : 'bg-pink-100 hover:bg-pink-200';
+        seatType = 'CPL';
+        break;
+      default:
+        bgColor = isSelected ? 'bg-indigo-600' : 'bg-gray-100';
+        seatType = type;
+    }
     if (disabled) {
       bgColor = 'bg-gray-200';
       textColor = 'text-gray-400';
       seatType = 'Đã bán';
-    } else if (isSelected) {
-      bgColor = 'bg-indigo-600';
-      textColor = 'text-white';
-      seatType = type === 'standard' ? 'STD' : type === 'vip' ? 'VIP' : 'CPL';
-    } else if (type === 'standard') {
-      bgColor = 'bg-blue-100 hover:bg-blue-200';
-      seatType = 'STD';
-    } else if (type === 'vip') {
-      bgColor = 'bg-purple-100 hover:bg-purple-200';
-      seatType = 'VIP';
-    } else if (type === 'couple') {
-      bgColor = 'bg-pink-100 hover:bg-pink-200';
-      seatType = 'CPL';
-      return (
-        <div
-          className={`w-20 h-8 col-span-2 flex items-center justify-center cursor-pointer ${isSelected ? 'bg-indigo-600 text-white' : 'bg-pink-100 hover:bg-pink-200'} rounded-md transition-all duration-200 shadow-sm`}
-          onClick={() => !disabled && handleSeatClick(row, number, type, seatId)}
-        >
-          <span className="text-xs font-semibold">{row}{number}-{number+1}</span>
-        </div>
-      );
     }
+
+    // Custom label cho ghế couple group
+    const label = isCoupleGroup ? `${row}${number}-${row}${number + 1}` : `${row}${number}`;
 
     return (
       <div
-        className={`w-10 h-8 flex items-center justify-center ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} ${bgColor} ${textColor} rounded-md transition-all duration-200 shadow-sm ${isSelected ? 'ring-2 ring-indigo-300' : ''}`}
-        onClick={() => !disabled && handleSeatClick(row, number, type, seatId)}
+        className={`w-full h-full flex items-center justify-center ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} ${bgColor} ${textColor} rounded-md transition-all duration-200 shadow-sm ${isSelected ? 'ring-2 ring-indigo-300' : ''}`}
+        onClick={() => !disabled && handleSeatClick(row, number, type as 'standard' | 'vip' | 'couple', seatId)}
       >
-        <span className="text-xs font-semibold">{row}{number}</span>
+        <span className="text-xs font-semibold">{label}</span>
       </div>
     );
   };
@@ -360,24 +373,25 @@ const SeatSelection = ({
           </div>
           
           <div className="flex flex-wrap justify-center space-x-4 mb-8">
+            {Array.from(new Set(seats.map(seat => seat.seatType.name))).map(type => (
+              <div key={type} className="flex items-center mb-2">
+                <div className={`w-4 h-4 rounded mr-2 shadow-sm ${(() => {
+                  switch (type.toLowerCase()) {
+                    case 'standard': return 'bg-blue-400';
+                    case 'vip': return 'bg-purple-400';
+                    case 'couple': return 'bg-pink-400';
+                    default: return 'bg-gray-400';
+                  }
+                })()}`}></div>
+                <span className="text-sm text-gray-600">{type}</span>
+              </div>
+            ))}
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-blue-400 to-blue-500 rounded mr-2 shadow-sm"></div>
-              <span className="text-sm text-gray-600">Standard</span>
-            </div>
-            <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-purple-400 to-purple-500 rounded mr-2 shadow-sm"></div>
-              <span className="text-sm text-gray-600">VIP</span>
-            </div>
-            <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-pink-400 to-pink-500 rounded mr-2 shadow-sm"></div>
-              <span className="text-sm text-gray-600">Couple</span>
-            </div>
-            <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded mr-2 shadow-sm"></div>
+              <div className="w-4 h-4 bg-indigo-500 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Đã chọn</span>
             </div>
             <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-gray-300 to-gray-400 rounded mr-2 shadow-sm"></div>
+              <div className="w-4 h-4 bg-gray-300 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Đã bán</span>
             </div>
           </div>

@@ -14,40 +14,21 @@ import {
 import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import ShowtimeForm from "./components/ShowtimesForm";
+import { getAllShowtime } from "@/app/services/owner/showtimeService";
+import dayjs from "dayjs";
 
 export interface Showtime {
   id: number;
-  movieId: number;
-  theaterId: number;
-  screenId: number;
+  movie: { id: number; title: string; titleVi?: string };
+  screen: { id: number; screenName: string; theaterName?: string; theater?: { id: number; name: string; address: string } };
+  theater?: { id: number; name: string; address: string };
   startTime: string;
   endTime: string;
   price: number;
   isActive: boolean;
   createdAt: string;
-  movieTitle?: string;
-  theaterName?: string;
-  screenName?: string;
-  theaterAddress?: string;
+  updatedAt: string;
 }
-
-const mockShowtimes: Showtime[] = [
-  {
-    id: 1,
-    movieId: 1,
-    theaterId: 1,
-    screenId: 1,
-    startTime: "24/06/2025 15:00",
-    endTime: "24/06/2025 17:30",
-    price: 95000,
-    isActive: true,
-    createdAt: "24/06/2025 10:00",
-    movieTitle: "Inception",
-    theaterName: "CGV Vincom",
-    screenName: "Phòng chiếu 1",
-    theaterAddress: "Vincom Đồng Khởi",
-  },
-];
 
 export default function Showtimes() {
   const [search, setSearch] = useState("");
@@ -55,19 +36,31 @@ export default function Showtimes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
   const [showModal, setShowModal] = useState(false);
-  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(
-    null
-  );
+  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+
+  const fetchShowtimes = async () => {
+    const res = await getAllShowtime();
+    if (res && res.statusCode === 200 && Array.isArray(res.data)) {
+      setShowtimes(res.data);
+    } else {
+      setShowtimes([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchShowtimes();
+  }, []);
 
   const filtered = useMemo(() => {
-    return mockShowtimes
+    return showtimes
       .filter((item) =>
-        item.movieTitle?.toLowerCase().includes(search.toLowerCase())
+        (item.movie?.titleVi || item.movie?.title || "").toLowerCase().includes(search.toLowerCase())
       )
       .sort((a, b) =>
         sortOrder === "asc" ? a.price - b.price : b.price - a.price
       );
-  }, [search, sortOrder]);
+  }, [search, sortOrder, showtimes]);
 
   const paginatedShowtimes = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -113,7 +106,7 @@ export default function Showtimes() {
               <TableHead className="px-4 py-4">Phòng</TableHead>
               <TableHead className="px-4 py-4">Rạp</TableHead>
               <TableHead className="px-4 py-4">Giờ chiếu</TableHead>
-              <TableHead className="px-4 py-4">Địa chỉ rạp</TableHead>
+              <TableHead className="px-4 py-4 max-w-[200px] truncate">Địa chỉ rạp</TableHead>
 
               <TableHead
                 onClick={toggleSort}
@@ -146,19 +139,19 @@ export default function Showtimes() {
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {showtime.movieTitle}
+                    {showtime.movie?.titleVi || showtime.movie?.title}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {showtime.screenName}
+                    {showtime.screen?.screenName}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {showtime.theaterName}
+                    {showtime.theater?.name || showtime.screen?.theaterName}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {showtime.startTime}
+                    {dayjs(showtime.startTime).format("HH:mm:ss DD/MM/YYYY")}
                   </TableCell>
-                  <TableCell className="px-4 py-4">
-                    {showtime.theaterAddress}
+                  <TableCell className="px-4 py-4 max-w-[200px] truncate">
+                    {showtime.theater?.address || showtime.screen?.theater?.address}
                   </TableCell>
 
                   <TableCell className="px-4 py-4">{showtime.price}</TableCell>
@@ -200,7 +193,7 @@ export default function Showtimes() {
           }
           onClose={() => setShowModal(false)}
         >
-          <ShowtimeForm showtime={selectedShowtime} />
+          <ShowtimeForm showtime={selectedShowtime} fetchShowtimes={fetchShowtimes} onClose={() => setShowModal(false)} />
         </BaseModal>
       )}
     </div>

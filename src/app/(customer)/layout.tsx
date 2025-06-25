@@ -8,7 +8,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Header />
-      <main className="min-h-screen">{children}</main>
+        <main className="min-h-screen">{children}</main>
       <Footer />
     </>
   );

@@ -15,17 +15,26 @@ export const get = async (path: string): Promise<any> => {
     });
 
     const result = await response.json();
-
     if (!response.ok) {
-      // Trả về message để phía bên kia showError
       showErrorMessage(result.message);
-      return;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
-    return result; // Thành công: trả về toàn bộ object
+    return {
+      statusCode: response.status,
+      message: result.message || "Success",
+      data: result.data !== undefined ? result.data : result,
+    };
   } catch (error: any) {
-    // Lỗi ngoài fetch hoặc JSON parsing
     showErrorMessage(`Lỗi khi gọi API: ${error.message || error}`);
-    return null; // hoặc throw nếu bạn muốn bên gọi xử lý tiếp
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message || error}`,
+      data: null,
+    };
   }
 };
 
@@ -38,32 +47,39 @@ export const post = async (
     const headers: HeadersInit = {
       "Content-Type": "application/json",
     };
-
-    // Nếu auth=true thì thêm Authorization
     if (auth) {
       const token = localStorage.getItem("token");
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
     }
-
     const response = await fetch(API_DOMAIN + path, {
       method: "POST",
       headers,
       body: JSON.stringify(values),
     });
-
     const result = await response.json();
-
     if (response.ok) {
-      return result;
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
     } else {
       showErrorMessage(result.message);
-      return;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message || error}`);
-    return null;
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message || error}`,
+      data: null,
+    };
   }
 };
 
@@ -72,33 +88,38 @@ export const del = async (path: string, auth = false): Promise<any> => {
     const headers: HeadersInit = {
       "Content-Type": "application/json",
     };
-
-    // Thêm token nếu auth = true
     if (auth) {
       const token = localStorage.getItem("token");
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
     }
-
     const response = await fetch(API_DOMAIN + path, {
       method: "DELETE",
       headers,
     });
-
-    // Bọc JSON parsing để tránh lỗi khi backend không trả JSON
-
     const result = await response.json();
-
     if (response.ok) {
-      return result;
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
     } else {
       showErrorMessage(result.message);
-      return;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message || error}`);
-    return null;
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message || error}`,
+      data: null,
+    };
   }
 };
 
@@ -136,30 +157,37 @@ export const patch = async (
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-
-    // Gắn token nếu cần xác thực
     if (auth) {
       const token = localStorage.getItem("accessToken");
       if (token) headers["Authorization"] = `Bearer ${token}`;
     }
-
     const response = await fetch(API_DOMAIN + path, {
       method: "PATCH",
       headers,
       body: JSON.stringify(values),
     });
-
-    // Dù response.ok hay không, luôn cố parse JSON nếu có
     const result = await response.json();
     if (response.ok) {
-      return result; // Có thể trả object hoặc true
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
     } else {
       showErrorMessage(result.message);
-      return;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message}`);
-    return null;
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message}`,
+      data: null,
+    };
   }
 };
 export const put = async (
@@ -172,30 +200,37 @@ export const put = async (
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-
-    // Gắn token nếu cần xác thực
     if (auth) {
       const token = localStorage.getItem("accessToken");
       if (token) headers["Authorization"] = `Bearer ${token}`;
     }
-
     const response = await fetch(API_DOMAIN + path, {
       method: "PUT",
       headers,
       body: JSON.stringify(values),
     });
-
-    // Dù response.ok hay không, luôn cố parse JSON nếu có
     const result = await response.json();
     if (response.ok) {
-      return result; // Có thể trả object hoặc true
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
     } else {
       showErrorMessage(result.message);
-      return;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message}`);
-    return null;
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message}`,
+      data: null,
+    };
   }
 };
 
@@ -208,30 +243,38 @@ export const postFormData = async (
 ): Promise<any> => {
   try {
     const headers: HeadersInit = {};
-
-    // Gắn token nếu cần xác thực
     if (auth) {
       const token = localStorage.getItem("accessToken");
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
     }
-
     const response = await fetch(API_DOMAIN + path, {
       method: "POST",
       headers, // KHÔNG đặt Content-Type cho FormData
       body: formData,
     });
-
     const result = await response.json();
     if (response.ok) {
-      return result;
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
     } else {
-      return result.message;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message}`);
-    return null;
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message}`,
+      data: null,
+    };
   }
 };
 
@@ -242,28 +285,35 @@ export const putFormData = async (
 ): Promise<any> => {
   try {
     const headers: HeadersInit = {};
-
-    // Gắn token nếu cần
     if (auth) {
       const token = localStorage.getItem("accessToken");
       if (token) headers["Authorization"] = `Bearer ${token}`;
     }
-
     const response = await fetch(API_DOMAIN + path, {
       method: "PUT",
       headers,
       body: formData, // Không tự set Content-Type cho FormData
     });
-
     const result = await response.json();
-
     if (response.ok) {
-      return result;
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
     } else {
-      return result.message;
+      return {
+        statusCode: response.status,
+        message: result.message || "Request failed",
+        data: null,
+      };
     }
   } catch (error: any) {
     showErrorMessage(`Lỗi khi gọi API: ${error.message}`);
-    return null;
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message}`,
+      data: null,
+    };
   }
 };

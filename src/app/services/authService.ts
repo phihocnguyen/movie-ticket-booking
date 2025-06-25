@@ -43,13 +43,14 @@ export const authService = {
         },
         body: JSON.stringify(data),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Registration failed");
+      const result = await response.json();
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(result.message || "Registration failed");
       }
+      // Optionally handle result.message or result.data
     } catch (error) {
-      showErrorMessage("Registration error:" + error);
+      const errMsg = (error instanceof Error) ? error.message : String(error);
+      showErrorMessage("Registration error:" + errMsg);
       throw error;
     }
   },
@@ -63,30 +64,25 @@ export const authService = {
         },
         body: JSON.stringify(data),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Login failed");
+      const result = await response.json();
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(result.message || "Login failed");
       }
-
-      const loginData: LoginResponse = await response.json();
-      console.log("Login response:", loginData);
-
+      const loginData: LoginResponse = result.data || result;
       // Store the token and user data in localStorage
       localStorage.setItem("token", loginData.token);
       localStorage.setItem("username", loginData.username);
       localStorage.setItem("role", loginData.role);
       localStorage.setItem("fullName", loginData.fullName);
       localStorage.setItem("userId", loginData.userId.toString());
-
       // Notify about auth state change
       if (authStateChangeCallback) {
         authStateChangeCallback();
       }
-
       return loginData;
     } catch (error) {
-      console.error("Login error:", error);
+      const errMsg = (error instanceof Error) ? error.message : String(error);
+      showErrorMessage("Login error:" + errMsg);
       throw error;
     }
   },

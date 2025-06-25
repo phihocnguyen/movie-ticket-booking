@@ -8,8 +8,7 @@ export default async function MovieDetailWrapper({
   params: { id: string };
 }) {
   const { id } = params;
-  const movie = await getMovieDetails(id);
-
+  const response = await getMovieDetails(id);
   return (
     <Suspense
       fallback={
@@ -18,7 +17,7 @@ export default async function MovieDetailWrapper({
         </div>
       }
     >
-      <MovieDetail movie={movie} />
+      <MovieDetail movie={response.data} />
     </Suspense>
   );
 }
