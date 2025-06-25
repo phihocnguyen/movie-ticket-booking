@@ -7,6 +7,7 @@ import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
 import {
   createMovie,
   editMovie,
+  getShowtimeById,
   uploadFile,
 } from "@/app/services/admin/movieSercive";
 import dayjs from "dayjs";
@@ -44,7 +45,6 @@ export default function MovieForm({
     rating: movie?.rating || "",
     country: movie?.country || "",
   });
-  console.log("trailerUrl", form.trailerUrl);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -101,95 +101,106 @@ export default function MovieForm({
   };
 
   const validateMovieData = (data: any) => {
-    const errors: string[] = [];
-
     // Validate title
     if (!data.title || data.title.trim().length === 0) {
-      errors.push("Tên phim không được để trống");
+      showErrorMessage("Tên phim không được để trống");
+      return false;
     } else if (data.title.trim().length < 2) {
-      errors.push("Tên phim phải có ít nhất 2 ký tự");
+      showErrorMessage("Tên phim phải có ít nhất 2 ký tự");
+      return false;
     }
 
     // Validate titleVi
     if (!data.titleVi || data.titleVi.trim().length === 0) {
-      errors.push("Tên phim tiếng Việt không được để trống");
+      showErrorMessage("Tên phim tiếng Việt không được để trống");
+      return false;
     } else if (data.titleVi.trim().length < 2) {
-      errors.push("Tên phim tiếng Việt phải có ít nhất 2 ký tự");
+      showErrorMessage("Tên phim tiếng Việt phải có ít nhất 2 ký tự");
+      return false;
     }
 
     // Validate description
     if (!data.description || data.description.trim().length === 0) {
-      errors.push("Mô tả không được để trống");
+      showErrorMessage("Mô tả không được để trống");
+      return false;
     } else if (data.description.trim().length < 10) {
-      errors.push("Mô tả phải có ít nhất 10 ký tự");
+      showErrorMessage("Mô tả phải có ít nhất 10 ký tự");
+      return false;
     }
 
     // Validate duration
     if (!data.duration || data.duration <= 0) {
-      errors.push("Thời lượng phải lớn hơn 0");
+      showErrorMessage("Thời lượng phải lớn hơn 0");
+      return false;
     } else if (data.duration > 300) {
-      errors.push("Thời lượng không được vượt quá 300 phút");
+      showErrorMessage("Thời lượng không được vượt quá 300 phút");
+      return false;
     }
 
     // Validate language
     if (!data.language || data.language.trim().length === 0) {
-      errors.push("Ngôn ngữ không được để trống");
+      showErrorMessage("Ngôn ngữ không được để trống");
+      return false;
     }
 
     // Validate genre
     if (!data.genre || data.genre.trim().length === 0) {
-      errors.push("Thể loại không được để trống");
+      showErrorMessage("Thể loại không được để trống");
+      return false;
     }
 
     // Validate releaseDate
     if (!data.releaseDate) {
-      errors.push("Ngày phát hành không được để trống");
-    } else {
-      const releaseDate = new Date(data.releaseDate);
-      const today = new Date();
-      if (releaseDate < today) {
-        errors.push("Ngày phát hành không được là ngày trong quá khứ");
-      }
+      showErrorMessage("Ngày phát hành không được để trống");
+      return false;
     }
 
     // Validate posterUrl
     if (!data.posterUrl) {
-      errors.push("Poster không được để trống");
+      showErrorMessage("Poster không được để trống");
+      return false;
     } else if (
       typeof data.posterUrl === "string" &&
       data.posterUrl.trim().length === 0
     ) {
-      errors.push("Poster không được để trống");
+      showErrorMessage("Poster không được để trống");
+      return false;
     }
 
     // Validate backdropUrl
     if (!data.backdropUrl) {
-      errors.push("Backdrop không được để trống");
+      showErrorMessage("Backdrop không được để trống");
+      return false;
     } else if (
       typeof data.backdropUrl === "string" &&
       data.backdropUrl.trim().length === 0
     ) {
-      errors.push("Backdrop không được để trống");
+      showErrorMessage("Backdrop không được để trống");
+      return false;
     }
 
     // Validate trailerUrl
     if (!data.trailerUrl || data.trailerUrl.trim().length === 0) {
-      errors.push("Trailer URL không được để trống");
+      showErrorMessage("Trailer URL không được để trống");
+      return false;
     } else {
       const youtubeId = extractYouTubeId(data.trailerUrl);
       if (!youtubeId) {
-        errors.push("Trailer URL phải là một URL YouTube hợp lệ");
+        showErrorMessage("Trailer URL phải là một URL YouTube hợp lệ");
+        return false;
       }
     }
 
     // Validate director
     if (!data.director || data.director.trim().length === 0) {
-      errors.push("Đạo diễn không được để trống");
+      showErrorMessage("Đạo diễn không được để trống");
+      return false;
     }
 
     // Validate actor
     if (!data.actor || data.actor.trim().length === 0) {
-      errors.push("Diễn viên không được để trống");
+      showErrorMessage("Diễn viên không được để trống");
+      return false;
     }
 
     // Validate rating
@@ -200,29 +211,30 @@ export default function MovieForm({
       data.rating === "" ||
       isNaN(ratingValue)
     ) {
-      errors.push("Điểm đánh giá không được để trống");
+      showErrorMessage("Điểm đánh giá không được để trống");
+      return false;
     } else if (ratingValue < 0) {
-      errors.push("Điểm đánh giá phải lớn hơn hoặc bằng 0");
+      showErrorMessage("Điểm đánh giá phải lớn hơn hoặc bằng 0");
+      return false;
     } else if (ratingValue > 10) {
-      errors.push("Điểm đánh giá không được vượt quá 10");
+      showErrorMessage("Điểm đánh giá không được vượt quá 10");
+      return false;
     }
 
     // Validate country
     if (!data.country || data.country.trim().length === 0) {
-      errors.push("Quốc gia không được để trống");
+      showErrorMessage("Quốc gia không được để trống");
+      return false;
     }
 
-    return errors;
+    return true;
   };
 
   const handleCreateMovie = async () => {
     try {
       // Validate dữ liệu trước khi xử lý
-      const validationErrors = validateMovieData(form);
-      if (validationErrors.length > 0) {
-        showErrorMessage(validationErrors.join("\n"));
-        return;
-      }
+      const isValid = validateMovieData(form);
+      if (!isValid) return;
 
       // Tạo FormData để upload files
       let posterUrl = form.posterUrl;
@@ -306,11 +318,8 @@ export default function MovieForm({
   const handleUpdateMovie = async () => {
     try {
       // Validate dữ liệu trước khi xử lý
-      const validationErrors = validateMovieData(form);
-      if (validationErrors.length > 0) {
-        showErrorMessage(validationErrors.join("\n"));
-        return;
-      }
+      const isValid = validateMovieData(form);
+      if (!isValid) return;
 
       // Tạo FormData để upload files
       let posterUrl = form.posterUrl;
@@ -486,7 +495,6 @@ export default function MovieForm({
             value={form.title}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -503,7 +511,6 @@ export default function MovieForm({
             value={form.titleVi}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -520,7 +527,6 @@ export default function MovieForm({
             value={form.description}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] resize-none focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -538,7 +544,6 @@ export default function MovieForm({
             value={form.duration}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -555,7 +560,6 @@ export default function MovieForm({
             value={form.language}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -572,7 +576,6 @@ export default function MovieForm({
             value={form.genre}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -589,7 +592,6 @@ export default function MovieForm({
             value={form.releaseDate}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -698,7 +700,6 @@ export default function MovieForm({
             value={form.director}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -715,7 +716,6 @@ export default function MovieForm({
             value={form.actor}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -736,7 +736,6 @@ export default function MovieForm({
             value={form.rating || ""}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -753,7 +752,6 @@ export default function MovieForm({
             value={form.country}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={movie !== null && !edit}
           />
         </div>
@@ -761,7 +759,17 @@ export default function MovieForm({
           <div className="flex gap-5 text-[15px] my-2">
             <div
               className="flex gap-5 border p-[4px] rounded-lg items-center  bg-[#CCC6F4] cursor-pointer"
-              onClick={() => {
+              onClick={async () => {
+                if (!movie?.id) return;
+                const showtimeRes = await getShowtimeById(movie.id);
+                if (
+                  showtimeRes &&
+                  Array.isArray(showtimeRes.data) &&
+                  showtimeRes.data.length > 0
+                ) {
+                  showErrorMessage("Không thể sửa phim đã có suất chiếu!");
+                  return;
+                }
                 setEdit(true);
               }}
             >

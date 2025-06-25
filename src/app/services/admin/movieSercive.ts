@@ -21,3 +21,7 @@ export const uploadFile = async (values: any) => {
   const reuslt = await postFormData(`api/upload`, values);
   return reuslt;
 };
+export const getShowtimeById = async (id: number) => {
+  const reuslt = await get(`api/showtimes/movie/${id}`);
+  return reuslt;
+};

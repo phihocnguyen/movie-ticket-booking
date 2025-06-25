@@ -14,7 +14,11 @@ import {
 import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import MovieForm from "./components/MovieForm";
-import { deleteMovie, getAllMovies } from "@/app/services/admin/movieSercive";
+import {
+  deleteMovie,
+  getAllMovies,
+  getShowtimeById,
+} from "@/app/services/admin/movieSercive";
 import {
   confirmDelete,
   showErrorMessage,
@@ -120,20 +124,27 @@ export default function Movies() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const handleDelete = async (ownerId: number) => {
+  const handleDelete = async (movieId: number) => {
+    // Kiểm tra showtime trước khi xóa
+    const showtimeRes = await getShowtimeById(movieId);
+    if (
+      showtimeRes &&
+      Array.isArray(showtimeRes.data) &&
+      showtimeRes.data.length > 0
+    ) {
+      showErrorMessage("Không thể xóa phim đã có suất chiếu!");
+      return;
+    }
     const confirmed = await confirmDelete(
       "Bạn có chắc muốn xóa phim này không?"
     );
-    // console.log(">>>>check confirmed:", confirmed); // Log id ra console
-    // console.log("User id:", userId); // Log id ra console
     if (!confirmed) return;
     try {
-      const result = await deleteMovie(ownerId);
-      // console.log(">>>>check result:", result); // Log kết quả xóa ra console
+      const result = await deleteMovie(movieId);
       if (!result) {
         return;
       }
-      setAllMovie((prev) => prev.filter((owner) => owner.id !== ownerId));
+      setAllMovie((prev) => prev.filter((owner) => owner.id !== movieId));
       showSuccess("Xóa phim thành công!");
     } catch (error) {
       showErrorMessage("Xóa phim thất bại!" + error);
@@ -239,7 +250,19 @@ export default function Movies() {
                     <div className="flex gap-2 items-center">
                       <Eye
                         className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
-                        onClick={() => {
+                        onClick={async () => {
+                          // Kiểm tra showtime trước khi cho sửa
+                          const showtimeRes = await getShowtimeById(movie.id);
+                          if (
+                            showtimeRes &&
+                            Array.isArray(showtimeRes.data) &&
+                            showtimeRes.data.length > 0
+                          ) {
+                            showErrorMessage(
+                              "Không thể sửa phim đã có suất chiếu!"
+                            );
+                            return;
+                          }
                           setSelectedMovie(movie);
                           setShowModal(true);
                         }}
