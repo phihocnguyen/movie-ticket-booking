@@ -10,6 +10,7 @@ import {
 } from "@/app/services/admin/voucherService";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import { getByAdmin } from "@/app/services/admin/systemService";
 dayjs.extend(customParseFormat);
 
 interface VoucherFormProps {
@@ -48,6 +49,10 @@ export default function VoucherForm({
   });
   console.log("check form", form);
   console.log("check voucherState", voucherState);
+  const [systemSettings, setSystemSettings] = useState<{
+    maxVoucherPerType?: number;
+  }>({});
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -126,6 +131,7 @@ export default function VoucherForm({
       const today = new Date();
       today.setHours(0, 0, 0, 0); // reset giờ phút giây để so sánh ngày
       const startDate = new Date(data.startDate);
+      startDate.setHours(0, 0, 0, 0);
       if (startDate < today) {
         showErrorMessage("Ngày bắt đầu không được bé hơn ngày hiện tại");
         return false;
@@ -157,6 +163,17 @@ export default function VoucherForm({
       return false;
     } else if (maxUsesValue <= 0) {
       showErrorMessage("Số lượng voucher phải lớn hơn 0");
+      return false;
+    }
+
+    // Validate maxUses không vượt quá maxVoucherPerType
+    if (
+      systemSettings.maxVoucherPerType &&
+      maxUsesValue > systemSettings.maxVoucherPerType
+    ) {
+      showErrorMessage(
+        `Số lượng voucher không được vượt quá ${systemSettings.maxVoucherPerType}`
+      );
       return false;
     }
 
@@ -305,6 +322,16 @@ export default function VoucherForm({
       type: voucher?.type || "",
     });
   }, [voucher]);
+
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      const res = await getByAdmin();
+      if (res && res.data) {
+        setSystemSettings(res.data);
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   // Hàm generate mã voucher tự động
   const generateVoucherCode = () => {
@@ -519,6 +546,7 @@ export default function VoucherForm({
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const startDate = new Date(form.startDate);
+                startDate.setHours(0, 0, 0, 0);
                 if (startDate <= today) {
                   showErrorMessage(
                     "Voucher đã phát hành, không thể chỉnh sửa!"
