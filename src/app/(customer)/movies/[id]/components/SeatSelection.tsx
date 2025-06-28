@@ -8,6 +8,8 @@ interface SeatSelectionProps {
   theaterName: string;
   showtime: string;
   date: Date;
+  screenName?: string;
+  price: string;
   onBack: () => void;
 }
 
@@ -38,6 +40,8 @@ const SeatSelection = ({
   theaterName,
   showtime,
   date,
+  screenName,
+  price,
   onBack
 }: SeatSelectionProps) => {
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
@@ -92,13 +96,35 @@ const SeatSelection = ({
   };
 
   const handleSeatClick = (row: string, number: number, type: 'standard' | 'vip' | 'couple', seatId: number) => {
-    const seatIndex = selectedSeats.findIndex(seat => seat.id === seatId);
-    
-    if (seatIndex === -1) {
-      const price = type === 'standard' ? 100000 : type === 'vip' ? 150000 : 200000;
-      setSelectedSeats([...selectedSeats, { id: seatId, row, number, type, price }]);
+    if (type === 'couple') {
+      const seat1 = seats.find(s => s.id === seatId);
+      const seat2 = seats.find(s => {
+        const { row: r, number: n } = parseSeatNumber(s.seatNumber);
+        return r === row && n === number + 1 && s.seatType.name.toLowerCase() === 'couple';
+      });
+      const price1 = Math.round((Number(price) || 0) * (seat1?.seatType?.priceMultiplier || 1));
+      const price2 = seat2 ? Math.round((Number(price) || 0) * (seat2.seatType?.priceMultiplier || 1)) : price1;
+      const isSelected1 = selectedSeats.some(seat => seat.id === seat1?.id);
+      const isSelected2 = seat2 ? selectedSeats.some(seat => seat.id === seat2.id) : false;
+      if (!isSelected1 && !isSelected2) {
+        const newSeats: SelectedSeat[] = [];
+        if (seat1) newSeats.push({ id: seat1.id, row, number, type, price: price1 });
+        if (seat2) newSeats.push({ id: seat2.id, row, number: number + 1, type, price: price2 });
+        setSelectedSeats([...selectedSeats, ...newSeats]);
+      } else {
+        setSelectedSeats(selectedSeats.filter(seat => seat.id !== seat1?.id && (!seat2 || seat.id !== seat2.id)));
+      }
     } else {
-      setSelectedSeats(selectedSeats.filter((_, index) => index !== seatIndex));
+      const seatIndex = selectedSeats.findIndex(seat => seat.id === seatId);
+      const seat = seats.find(s => s.id === seatId);
+      let basePrice = Number(price) || 0;
+      let priceMultiplier = seat?.seatType?.priceMultiplier || 1;
+      const seatPrice = Math.round(basePrice * priceMultiplier);
+      if (seatIndex === -1) {
+        setSelectedSeats([...selectedSeats, { id: seatId, row, number, type, price: seatPrice }]);
+      } else {
+        setSelectedSeats(selectedSeats.filter((_, index) => index !== seatIndex));
+      }
     }
   };
 
@@ -355,11 +381,17 @@ const SeatSelection = ({
             </svg>
             <span>Ngày chiếu: {formatDate(date)}</span>
           </div>
+          <div className="mr-4 mb-2 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2" />
+            </svg>
+            <span>Phòng chiếu: {screenName}</span>
+          </div>
           <div className="mb-2 flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Giờ chiếu: {showtime.split(' ')[1]}</span>
+            <span>Giờ chiếu: {showtime ? new Date(showtime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
           </div>
         </div>
       </div>
@@ -373,19 +405,23 @@ const SeatSelection = ({
           </div>
           
           <div className="flex flex-wrap justify-center space-x-4 mb-8">
-            {Array.from(new Set(seats.map(seat => seat.seatType.name))).map(type => (
-              <div key={type} className="flex items-center mb-2">
-                <div className={`w-4 h-4 rounded mr-2 shadow-sm ${(() => {
-                  switch (type.toLowerCase()) {
-                    case 'standard': return 'bg-blue-400';
-                    case 'vip': return 'bg-purple-400';
-                    case 'couple': return 'bg-pink-400';
-                    default: return 'bg-gray-400';
-                  }
-                })()}`}></div>
-                <span className="text-sm text-gray-600">{type}</span>
-              </div>
-            ))}
+            {['standard', 'vip', 'couple'].map(type => {
+              const seat = seats.find(s => s.seatType.name.toLowerCase() === type);
+              const multiplier = seat?.seatType.priceMultiplier || 1;
+              const seatPrice = Math.round((Number(price) || 0) * multiplier);
+              let color = '';
+              switch(type) {
+                case 'standard': color = 'bg-blue-400'; break;
+                case 'vip': color = 'bg-purple-400'; break;
+                case 'couple': color = 'bg-pink-400'; break;
+              }
+              return (
+                <div key={type} className="flex items-center mb-2">
+                  <div className={`w-4 h-4 rounded mr-2 shadow-sm ${color}`}></div>
+                  <span className="text-sm text-gray-600">Ghế {type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                </div>
+              );
+            })}
             <div className="flex items-center mb-2">
               <div className="w-4 h-4 bg-indigo-500 rounded mr-2 shadow-sm"></div>
               <span className="text-sm text-gray-600">Đã chọn</span>
@@ -435,47 +471,6 @@ const SeatSelection = ({
             
             <div className="space-y-6">
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white mr-3 shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700">Ghế Standard</p>
-                    </div>
-                  </div>
-                  <p className="font-medium text-gray-700">100.000 VND</p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center text-white mr-3 shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700">Ghế VIP</p>
-                    </div>
-                  </div>
-                  <p className="font-medium text-gray-700">150.000 VND</p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-white mr-3 shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700">Ghế Couple</p>
-                    </div>
-                  </div>
-                  <p className="font-medium text-gray-700">200.000 VND</p>
-                </div>
               </div>
               
               <div className="border-t border-gray-200 pt-4">
@@ -487,7 +482,7 @@ const SeatSelection = ({
                   Ghế đã chọn
                 </h4>
                 
-                <div className="max-h-[200px] overflow-y-auto">
+                <div className="h-[300px] overflow-y-auto">
                   {selectedSeats.length === 0 ? (
                     <div className="text-center py-8">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -512,7 +507,7 @@ const SeatSelection = ({
                             </span>
                           </div>
                           <div className="flex items-center">
-                            <span className="font-medium text-gray-700">{seat.price.toLocaleString()}</span>
+                            <span className="font-medium text-gray-700">{seat.price.toLocaleString()} VNĐ</span>
                             <button
                               onClick={() => handleSeatClick(seat.row, seat.number, seat.type, seat.id)}
                               className="ml-2 text-gray-400 hover:text-red-500 transition-colors"

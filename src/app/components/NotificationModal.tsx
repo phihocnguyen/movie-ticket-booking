@@ -2,12 +2,18 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Film, Clock, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { db } from '../services/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { getMovieDetails } from '@/app/(customer)/movies/[id]/api';
+import { useAuth } from '../context/AuthContext';
+import { onValue, ref } from 'firebase/database';
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'new_movie' | 'update' | 'promotion';
+  type: 'NEW_MOVIE' | 'update' | 'promotion';
   moviePoster?: string;
   releaseDate?: string;
   createdAt: string;
@@ -19,39 +25,48 @@ interface NotificationModalProps {
   onClose: () => void;
 }
 
-// Mock notifications data
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'New Movie Added',
-    message: 'The new movie "Dune: Part Two" has been added to our collection.',
-    type: 'new_movie',
-    moviePoster: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
-    releaseDate: '2024-03-15',
-    createdAt: '2024-03-14T10:00:00Z',
-    isRead: false,
-  },
-  {
-    id: '2',
-    title: 'Movie Update',
-    message: 'Showtimes for "Poor Things" have been updated.',
-    type: 'update',
-    moviePoster: 'https://image.tmdb.org/t/p/w500/kCGlIMHnOm8JPXq3rXM6c5wMxcT.jpg',
-    releaseDate: '2024-03-20',
-    createdAt: '2024-03-13T15:30:00Z',
-    isRead: true,
-  },
-  {
-    id: '3',
-    title: 'Special Promotion',
-    message: 'Get 20% off on all movie tickets this weekend!',
-    type: 'promotion',
-    createdAt: '2024-03-12T09:15:00Z',
-    isRead: false,
-  },
-];
-
 export default function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const {userData} = useAuth()
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    const notificationsRef = ref(db, 'notifications');
+    const unsubscribe = onValue(notificationsRef, async (snapshot) => {
+      const data = snapshot.val();
+      console.log('Firebase raw data:', data);
+      let notiArr = [];
+      if (data) {
+        notiArr = Object.entries(data).map(([id, value]: any) => ({ id, ...value }));
+      }
+      console.log('Mapped notifications:', notiArr);
+      const notiPromises = notiArr.map(async (notification) => {
+        if (notification.movieId && (!notification.title || !notification.moviePoster)) {
+          try {
+            const res = await getMovieDetails(notification.movieId);
+            if (res && res.data) {
+              notification = {
+                ...notification,
+                title: res.data.title || notification.title,
+                moviePoster: res.data.posterUrl || notification.moviePoster,
+                releaseDate: res.data.releaseDate || notification.releaseDate,
+              };
+            }
+          } catch (e) { }
+        }
+        notification.isRead = notification.readUsers?.includes(userData?.id) ?? false;
+        return notification;
+      });
+      const notis = await Promise.all(notiPromises);
+      console.log('Final notifications:', notis);
+      setNotifications(notis);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [isOpen]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -61,13 +76,16 @@ export default function NotificationModal({ isOpen, onClose }: NotificationModal
     });
   };
 
-  const formatTime = (dateString: string) => {
+  function formatRelativeTime(dateString: string) {
+    const now = new Date();
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000); // seconds
+    if (diff < 60) return `${diff <= 1 ? 'Vừa xong' : diff + ' giây trước'}`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+    if (diff < 2592000) return `${Math.floor(diff / 86400)} ngày trước`;
+    return date.toLocaleDateString('vi-VN');
+  }
 
   return (
     <AnimatePresence>
@@ -103,7 +121,7 @@ export default function NotificationModal({ isOpen, onClose }: NotificationModal
 
             {/* Notifications List */}
             <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-              {mockNotifications.map((notification) => (
+              {notifications.map((notification) => (
                 <motion.div
                   key={notification.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -113,7 +131,7 @@ export default function NotificationModal({ isOpen, onClose }: NotificationModal
                   }`}
                 >
                   <div className="flex gap-4">
-                    {notification.type === 'new_movie' && notification.moviePoster ? (
+                    {notification.type === 'NEW_MOVIE' && notification.moviePoster ? (
                       <div className="relative w-16 h-24 flex-shrink-0">
                         <img
                           src={notification.moviePoster}
@@ -130,12 +148,12 @@ export default function NotificationModal({ isOpen, onClose }: NotificationModal
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-medium text-white">{notification.title}</h3>
+                        <p className="text-sm text-gray-300 mt-1">{notification.message}</p>
                         <span className="text-xs text-gray-400">
-                          {formatTime(notification.createdAt)}
+                          {formatRelativeTime(notification.createdAt)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-300 mt-1">{notification.message}</p>
+                      <h3 className="font-medium text-white mt-1">{notification.title}</h3>
                       
                       {notification.releaseDate && (
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">

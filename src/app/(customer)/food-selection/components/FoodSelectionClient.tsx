@@ -43,7 +43,7 @@ const FoodSelectionClient: React.FC<FoodSelectionClientProps> = ({
   const fetchFoodItems = useCallback(async () => {
     try {
       const response = await axiosInstance.get('/theater-food');
-      setFoodItems(response.data);
+      setFoodItems(response.data.data);
     } catch (error) {
       console.error('Error fetching food items:', error);
     }
