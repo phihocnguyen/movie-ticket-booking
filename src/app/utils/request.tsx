@@ -293,3 +293,53 @@ export const putFormData = async (
     };
   }
 };
+
+// những api đặc biệt
+export const getByEmail = async (path: string): Promise<any> => {
+  try {
+    const response = await fetch(API_DOMAIN + path, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      return {
+        statusCode: response.status,
+        message: result.message || "Success",
+        data: result.data !== undefined ? result.data : result,
+      };
+    } else if (response.status === 404) {
+      // Bắt riêng lỗi 404
+      return {
+        statusCode: 404,
+        message: "Không tồn tại",
+        data: null,
+      };
+    } else {
+      // Nếu không ok, cố gắng parse JSON, nếu lỗi thì trả về message mặc định
+      let message = "Request failed";
+      try {
+        const result = await response.json();
+        message = result.message || message;
+      } catch (e) {
+        // Không làm gì, giữ message mặc định
+      }
+      return {
+        statusCode: response.status,
+        message,
+        data: null,
+      };
+    }
+  } catch (error: any) {
+    showErrorMessage(`Lỗi khi gọi API: ${error.message || error}`);
+    return {
+      statusCode: 500,
+      message: `Lỗi khi gọi API: ${error.message || error}`,
+      data: null,
+    };
+  }
+};
