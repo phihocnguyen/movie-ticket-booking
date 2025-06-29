@@ -129,7 +129,7 @@ const PaymentClient = () => {
 
     try {
       setIsProcessing(true);
-      await axiosInstance.post('/bookings', {
+      const response = await axiosInstance.post('/bookings?paymentMethod=VNPAY', {
         userId: parseInt(userId),
         showtimeId: parseInt(showtimeId || "0"),
         bookingTime: new Date().toLocaleDateString('en-GB', {
@@ -152,6 +152,10 @@ const PaymentClient = () => {
           price: food.price
         }))
       });
+      if (response?.data?.data && typeof response.data.data === 'string' && response.data.data.startsWith('http')) {
+        window.location.href = response.data.data;
+        return;
+      }
       
       // Create query parameters for booking success page
       const queryParams = new URLSearchParams({
@@ -197,11 +201,11 @@ const PaymentClient = () => {
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600 text-sm mb-1">Ngày</p>
-                <p className="font-medium text-gray-900">{bookingData.showtime.split(" ")[0]}</p>
+                <p className="font-medium text-gray-900">{bookingData.date ? new Date(bookingData.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-600 text-sm mb-1">Suất chiếu</p>
-                <p className="font-medium text-gray-900">{bookingData.showtime.split(" ")[1]}</p>
+                <p className="text-gray-600 text-sm mb-1">Giờ chiếu</p>
+                <p className="font-medium text-gray-900">{bookingData.showtime ? new Date(bookingData.showtime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600 text-sm mb-1">Ghế</p>

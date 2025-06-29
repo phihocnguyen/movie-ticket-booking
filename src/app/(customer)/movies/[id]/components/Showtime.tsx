@@ -127,6 +127,8 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({
     params.set("showTimeId", String(showtime.id ?? ""));
     params.set("showtime", String(showtime.startTime || ""));
     params.set("screenId", String(showtime.screen?.id ?? ""));
+    params.set("screenName", String(showtime.screen?.screenName ?? ""));
+    params.set("price", String(showtime.price ?? ""));
     params.set("date", String(selectedDate.toISOString() || ""));
     router.push(`/seat-selection?${params.toString()}`);
   };

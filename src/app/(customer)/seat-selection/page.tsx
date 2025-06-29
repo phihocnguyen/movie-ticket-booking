@@ -12,6 +12,8 @@ const SeatSelectionPage = () => {
   const showtime = searchParams.get("showtime") || "";
   const dateStr = searchParams.get("date") || new Date().toISOString();
   const date = new Date(dateStr);
+  const screenName = searchParams.get("screenName") || "";
+  const price = searchParams.get("price") || "";
 
   return (
     <div className="container mx-auto px-4">
@@ -23,6 +25,8 @@ const SeatSelectionPage = () => {
         theaterName={theaterName}
         showtime={showtime}
         date={date}
+        screenName={screenName}
+        price={price}
         onBack={() => router.back()}
       />
     </div>
