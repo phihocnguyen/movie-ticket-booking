@@ -5,29 +5,40 @@ import { BlogPost } from "../page"; // <-- interface mới bạn khai ở page
 import { SquarePen } from "lucide-react";
 import dayjs from "dayjs";
 import TextEditor from "@/app/admin/components/TextEditor";
+import {
+  createBlog,
+  uploadFile,
+  editBlog,
+} from "@/app/services/admin/blogService";
+import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
 
 /* ===== props ===== */
 interface BlogFormProps {
   post?: BlogPost | null;
+  reload: () => void;
+  onClose: () => void;
 }
 
 /* ===== component ===== */
-export default function BlogForm({ post }: BlogFormProps) {
+export default function BlogForm({ post, reload, onClose }: BlogFormProps) {
   /* preview & edit‑mode */
+  const [postState, setPostState] = useState(post);
   const [edit, setEdit] = useState<boolean>(false);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(
+    typeof post?.thumbnail === "string" ? post.thumbnail : null
+  );
+  const [loading, setLoading] = useState(false);
 
-  /* form state (giữ nguyên cấu trúc cũ: label 20 % – input 80 %) */
+  /* form state (giữ nguyên cấu trúc cũ: label 20 % – input 80 %) */
   const [form, setForm] = useState({
-    id: post?.id ?? "",
-    title: post?.title ?? "",
-    author: post?.author ?? "",
-    created_at: post?.created_at ?? "",
-    summary: post?.summary ?? "",
-    content: post?.content ?? "",
-    thumbnail: post?.thumbnail ?? "",
-    published: post?.published ?? false,
-    type: post?.type ?? "",
+    id: postState?.id ?? "",
+    title: postState?.title ?? "",
+    author: postState?.author ?? "",
+    summary: postState?.summary ?? "",
+    content: postState?.content ?? "",
+    thumbnail: postState?.thumbnail ?? "",
+    published: postState?.published ?? false,
+    type: postState?.type ?? "",
   });
 
   /* ===== handlers ===== */
@@ -46,10 +57,16 @@ export default function BlogForm({ post }: BlogFormProps) {
     e.preventDefault();
     // TODO: gọi API lưu blog post
   };
-  console.log("Check publish", post);
+  console.log("Check thumbnailPreview", thumbnailPreview);
+  console.log("Check postState", postState);
   /* reset edit khi đổi post */
   useEffect(() => {
     setEdit(false);
+    setPostState(post);
+    // Set thumbnail preview from existing post data
+    setThumbnailPreview(
+      typeof post?.thumbnail === "string" ? post.thumbnail : null
+    );
   }, [post]);
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
@@ -65,8 +82,175 @@ export default function BlogForm({ post }: BlogFormProps) {
       if (name === "thumbnail") setThumbnailPreview(thumbnailPreview);
     }
   };
+
+  const handleUpdate = async () => {
+    setLoading(true);
+
+    try {
+      // Validate form
+      if (!validateForm()) {
+        setLoading(false);
+        return;
+      }
+
+      let thumbnailUrl = "";
+
+      // Upload thumbnail if exists
+      if (form.thumbnail instanceof File) {
+        const formData = new FormData();
+        formData.append("file", form.thumbnail);
+
+        const uploadRes = await uploadFile(formData);
+        if (uploadRes && uploadRes.statusCode === 200) {
+          thumbnailUrl = uploadRes.data;
+        } else {
+          showErrorMessage("Lỗi khi upload ảnh");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Prepare blog data
+      const blogData = {
+        title: form.title.trim(),
+        author: form.author.trim(),
+        summary: form.summary.trim(),
+        content: form.content.trim(),
+        thumbnail: thumbnailUrl || form.thumbnail, // Use existing thumbnail if no new upload
+        published: form.published,
+        type: form.type.trim(),
+      };
+
+      // Update blog
+      const res = await editBlog(blogData, post!.id);
+      if (res && res.statusCode === 200) {
+        showSuccess("Cập nhật bài viết thành công");
+        reload();
+        setEdit(false);
+        setPostState(
+          (prev) =>
+            ({
+              ...prev!,
+              ...blogData,
+            } as BlogPost)
+        );
+      } else {
+        showErrorMessage("Có lỗi xảy ra khi cập nhật bài viết");
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi: " + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ===== VALIDATION ===== */
+  const validateForm = (): boolean => {
+    if (!form.title.trim()) {
+      showErrorMessage("Vui lòng nhập tiêu đề bài viết");
+      return false;
+    }
+
+    if (!form.author.trim()) {
+      showErrorMessage("Vui lòng nhập tên tác giả");
+      return false;
+    }
+
+    if (!form.type.trim()) {
+      showErrorMessage("Vui lòng chọn loại bài viết");
+      return false;
+    }
+
+    if (!form.summary.trim()) {
+      showErrorMessage("Vui lòng nhập tóm tắt bài viết");
+      return false;
+    }
+
+    if (!form.content.trim()) {
+      showErrorMessage("Vui lòng nhập nội dung bài viết");
+      return false;
+    }
+
+    if (!form.thumbnail) {
+      showErrorMessage("Vui lòng chọn ảnh đại diện");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleCreate = async () => {
+    setLoading(true);
+
+    try {
+      // Validate form
+      if (!validateForm()) {
+        setLoading(false);
+        return;
+      }
+
+      let thumbnailUrl = "";
+
+      // Upload thumbnail if exists
+      if (form.thumbnail instanceof File) {
+        const formData = new FormData();
+        formData.append("file", form.thumbnail);
+
+        const uploadRes = await uploadFile(formData);
+        console.log("Check uploadRes", uploadRes);
+        if (uploadRes && uploadRes.statusCode === 200) {
+          thumbnailUrl = uploadRes.data; // Adjust based on your API response
+        } else {
+          showErrorMessage("Lỗi khi upload ảnh");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Prepare blog data
+      const blogData = {
+        title: form.title.trim(),
+        author: form.author.trim(),
+        summary: form.summary.trim(),
+        content: form.content.trim(),
+        thumbnail: thumbnailUrl,
+        published: form.published,
+        type: form.type.trim(),
+      };
+
+      // Create blog
+      const res = await createBlog(blogData);
+      if (res && res.statusCode === 200) {
+        showSuccess("Thêm bài viết thành công");
+        reload();
+        onClose();
+      } else {
+        showErrorMessage("Có lỗi xảy ra khi tạo bài viết");
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi: " + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const resetForm = () => {
+    setForm({
+      id: postState?.id ?? "",
+      title: postState?.title ?? "",
+      author: postState?.author ?? "",
+      summary: postState?.summary ?? "",
+      content: postState?.content ?? "",
+      thumbnail: postState?.thumbnail ?? "",
+      published: postState?.published ?? false,
+      type: postState?.type ?? "",
+    });
+    // Reset thumbnail preview to original
+    setThumbnailPreview(
+      typeof postState?.thumbnail === "string" ? postState.thumbnail : null
+    );
+  };
   const disable = post !== null && !edit;
-  /* ===== UI ===== */
+
   return (
     <div className="max-h-[600px] overflow-y-auto pr-2">
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -83,7 +267,6 @@ export default function BlogForm({ post }: BlogFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px]
                        focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable}
           />
         </div>
@@ -101,7 +284,6 @@ export default function BlogForm({ post }: BlogFormProps) {
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px]
                        focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable}
           />
         </div>
@@ -119,7 +301,6 @@ export default function BlogForm({ post }: BlogFormProps) {
               name="thumbnail"
               placeholder="Ảnh đại diện"
               className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-              required
               disabled={disable}
             />
           </div>
@@ -137,18 +318,17 @@ export default function BlogForm({ post }: BlogFormProps) {
         </div>
         {/* loại */}
         <div className="flex items-center gap-5">
-          <label className="w-[20%] text-[15px]" htmlFor="slug">
+          <label className="w-[20%] text-[15px]" htmlFor="type">
             Loại bài đăng
           </label>
           <input
-            id="slug"
-            name="slug"
+            id="type"
+            name="type"
             placeholder="Nhập loại bài đăng. EX: Điện ảnh, hệ thống"
             value={form.type}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px]
                        focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable}
           />
         </div>
@@ -167,7 +347,6 @@ export default function BlogForm({ post }: BlogFormProps) {
             className="w-[80%] border px-2 py-1.5 rounded-[8px] resize-none text-[15px]
                        focus:ring-0 focus:border-[#1677ff] outline-none"
             rows={3}
-            required
             disabled={disable}
           />
         </div>
@@ -185,24 +364,6 @@ export default function BlogForm({ post }: BlogFormProps) {
               height={500}
             />
           </div>
-        </div>
-
-        {/* created_at  */}
-        <div className="flex items-center gap-5">
-          <label className="w-[20%] text-[15px]" htmlFor="created_at">
-            Ngày đăng
-          </label>
-          <input
-            id="created_at"
-            name="created_at"
-            type="date"
-            value={dayjs(form.created_at).format("YYYY-MM-DD")}
-            onChange={handleChange}
-            className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px]
-                       focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
-            disabled={disable}
-          />
         </div>
         {/* published */}
         <div className="flex items-center gap-5 ">
@@ -226,6 +387,7 @@ export default function BlogForm({ post }: BlogFormProps) {
               type="button"
               onClick={() => setEdit(true)}
               className="flex gap-2 items-center border p-[6px] rounded-lg bg-[#CCC6F4]"
+              disabled={loading}
             >
               Chỉnh sửa thông tin
               <SquarePen size={18} />
@@ -237,16 +399,21 @@ export default function BlogForm({ post }: BlogFormProps) {
           <div className="flex justify-end gap-5">
             <button
               type="button"
-              onClick={() => setEdit(false)}
-              className="w-[20%] bg-[#D51F2A] text-white py-2 rounded"
+              className="w-[20%] bg-[#D51F2A] text-white py-2 rounded disabled:opacity-50"
+              disabled={loading}
+              onClick={() => {
+                setEdit(false);
+                resetForm();
+              }}
             >
               Hủy
             </button>
             <button
-              type="submit"
-              className="w-[20%] bg-[#432DD7] text-white py-2 rounded"
+              className="w-[20%] bg-[#432DD7] text-white py-2 rounded disabled:opacity-50"
+              onClick={handleUpdate}
+              disabled={loading}
             >
-              Xác nhận
+              {loading ? "Đang xử lý..." : "Xác nhận"}
             </button>
           </div>
         )}
@@ -254,10 +421,11 @@ export default function BlogForm({ post }: BlogFormProps) {
         {post === null && (
           <div className="flex justify-end">
             <button
-              type="submit"
-              className="w-[20%] bg-[#432DD7] text-white py-2 rounded"
+              className="w-[20%] bg-[#432DD7] text-white py-2 rounded disabled:opacity-50"
+              onClick={handleCreate}
+              disabled={loading}
             >
-              Xác nhận
+              {loading ? "Đang xử lý..." : "Xác nhận"}
             </button>
           </div>
         )}

@@ -15,12 +15,18 @@ import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import BlogForm from "./components/BlogForm";
 import dayjs from "dayjs";
+import { deleteBlog, getAllBlogs } from "@/app/services/admin/blogService";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
 
 /* ────────────────── INTERFACE ────────────────── */
 export interface BlogPost {
   id: number;
   title: string;
-  created_at: string;
+  createdAt: string;
   author: string;
   content: string;
   summary: string;
@@ -29,32 +35,27 @@ export interface BlogPost {
   type: string;
 }
 
-/* ────────────────── MOCK DATA ────────────────── */
-const mockBlogs: BlogPost[] = [
-  {
-    id: 1,
-    title: "Giới thiệu về React",
-    created_at: "2025-06-19T10:00:00Z",
-    author: "Nguyễn Văn A",
-    content:
-      "React là thư viện JavaScript dùng để xây dựng giao diện người dùng...",
-    summary: "Tổng quan về ReactJS",
-    thumbnail: null,
-    published: true,
-    type: "Tin điện ảnh",
-  },
-  {
-    id: 2,
-    title: "Hướng dẫn sử dụng TailwindCSS",
-    created_at: "2025-06-18T09:30:00Z",
-    author: "Trần Thị B",
-    content: "Tailwind là framework CSS giúp tạo giao diện nhanh chóng...",
-    summary: "Cách sử dụng Tailwind trong dự án",
-    thumbnail: null,
-    published: false,
-    type: "Hệ thống",
-  },
-];
+/* ────────────────── HELPER FUNCTIONS ────────────────── */
+const parseDate = (dateString: string): Date => {
+  // Parse DD/MM/YYYY HH:mm:ss format
+  const parts = dateString.split(" ");
+  const datePart = parts[0]; // "29/06/2025"
+  const timePart = parts[1]; // "13:21:27"
+
+  const [day, month, year] = datePart.split("/");
+  const [hour, minute, second] = timePart.split(":");
+
+  // Create Date object (month is 0-indexed)
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    parseInt(second)
+  );
+};
+
 /* ────────────────── PAGE COMPONENT ────────────────── */
 export default function Blogs() {
   const [search, setSearch] = useState("");
@@ -64,10 +65,44 @@ export default function Blogs() {
   const [typeBlog, setTypeBlog] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
+
+  const fetchBlogs = async () => {
+    try {
+      const res = await getAllBlogs();
+      if (res && res.statusCode === 200 && Array.isArray(res.data)) {
+        setBlogs(res.data);
+      } else {
+        setBlogs([]);
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi lấy danh sách blog: " + error);
+      return;
+    }
+  };
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const reload = async () => {
+    try {
+      const res = await getAllBlogs();
+      console.log("Check res", res);
+      if (res && res.statusCode === 200 && Array.isArray(res.data)) {
+        setBlogs(res.data);
+      } else {
+        setBlogs([]);
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi lấy danh sách blog: " + error);
+    }
+  };
 
   /* ---------- FILTER + SORT ---------- */
   const filtered = useMemo(() => {
-    return mockBlogs
+    console.log("filtered recalculating, sortOrder:", sortOrder);
+    return blogs
       .filter((b) => {
         const matchesSearch =
           b.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -75,12 +110,12 @@ export default function Blogs() {
         const matchesType = typeBlog ? b.type === typeBlog : true;
         return matchesSearch && matchesType;
       })
-      .sort((a, b) =>
-        sortOrder === "asc"
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title)
-      );
-  }, [search, sortOrder, typeBlog]);
+      .sort((a, b) => {
+        const dateA = parseDate(a.createdAt).getTime();
+        const dateB = parseDate(b.createdAt).getTime();
+        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      });
+  }, [search, sortOrder, typeBlog, blogs]);
 
   /* ---------- PAGINATION ---------- */
   const paginated = filtered.slice(
@@ -88,16 +123,41 @@ export default function Blogs() {
     currentPage * pageSize
   );
   const totalPages = Math.ceil(filtered.length / pageSize);
-  const blogTypes = Array.from(new Set(mockBlogs.map((b) => b.type)));
+  const blogTypes = Array.from(new Set(blogs.map((b) => b.type)));
   useEffect(() => {
     setCurrentPage(1);
   }, [search, pageSize, typeBlog]);
 
   /* ---------- HANDLERS ---------- */
-  const toggleSort = () =>
-    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+  const toggleSort = () => {
+    console.log("toggleSort called, current sortOrder:", sortOrder);
+    setSortOrder((prev) => {
+      const newOrder = prev === "asc" ? "desc" : "asc";
+      console.log("New sortOrder:", newOrder);
+      return newOrder;
+    });
+  };
 
-  /* ────────────────── RENDER ────────────────── */
+  const handleDelete = async (id: number) => {
+    // Hiển thị confirmation dialog
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa bài viết này không?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await deleteBlog(id);
+      if (res && res.statusCode === 200) {
+        showSuccess("Xóa bài viết thành công");
+        setBlogs((prev) => prev.filter((blog) => blog.id !== id));
+      } else {
+        return;
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi xóa bài viết: " + error);
+      return;
+    }
+  };
   return (
     <div className="space-y-5">
       {/* SEARCH & NEW BUTTON */}
@@ -144,7 +204,17 @@ export default function Blogs() {
               <TableHead className="px-4 py-4">Tác giả</TableHead>
               <TableHead className="px-4 py-4">Loại</TableHead>
               <TableHead className="px-4 py-4">Trạng thái</TableHead>
-              <TableHead className="px-4 py-4">Ngày tạo</TableHead>
+              <TableHead
+                onClick={toggleSort}
+                className="flex items-center justify-start px-4 py-4 mt-1.5 cursor-pointer select-none gap-1"
+              >
+                Ngày tạo
+                {sortOrder === "desc" ? (
+                  <IoMdArrowDropdown className="w-5 h-5 mt-0.5" />
+                ) : (
+                  <IoMdArrowDropup className="w-5 h-5 mt-0.5" />
+                )}
+              </TableHead>
               <TableHead className="px-4 py-4">Hành động</TableHead>
             </TableRow>
           </TableHeader>
@@ -152,7 +222,7 @@ export default function Blogs() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6">
+                <TableCell colSpan={7} className="text-center py-6">
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
@@ -169,7 +239,7 @@ export default function Blogs() {
                     {b.published ? "Công khai" : "Nháp"}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {dayjs(b.created_at).format("YYYY-MM-DD")}
+                    {dayjs(b.createdAt).format("YYYY-MM-DD")}
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2">
@@ -180,7 +250,10 @@ export default function Blogs() {
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => handleDelete(b.id)}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -209,7 +282,11 @@ export default function Blogs() {
           title={selectedBlog ? "Chi tiết bài viết" : "Thêm bài viết mới"}
           onClose={() => setShowModal(false)}
         >
-          <BlogForm post={selectedBlog} />
+          <BlogForm
+            post={selectedBlog}
+            reload={reload}
+            onClose={() => setShowModal(false)}
+          />
         </BaseModal>
       )}
     </div>
