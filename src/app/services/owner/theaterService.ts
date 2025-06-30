@@ -21,5 +21,7 @@ export const getTheaterOwner = async (userId: number) => {
   return result;
 };
 export const getTheatersByOwner = async (theaterOwnerId: number) => {
-  return await get(`api/theaters/theater-owner?theaterOwnerId=${theaterOwnerId}`);
-}; 
+  return await get(
+    `api/theaters/theater-owner?theaterOwnerId=${theaterOwnerId}`
+  );
+};

@@ -15,7 +15,13 @@ import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import TheaterForm from "./components/TheaterForm";
 import { useRouter } from "next/navigation";
-import { getAllTheaters } from "@/app/services/owner/theaterService";
+import {
+  getAllTheaters,
+  getTheaterOwner,
+  getTheatersByOwner,
+} from "@/app/services/owner/theaterService";
+import { useAuth } from "@/app/context/AuthContext";
+import { Owner } from "@/app/admin/users/owners/page";
 
 /* ────────────────── INTERFACE ────────────────── */
 export interface Theater {
@@ -44,7 +50,24 @@ export default function Theaters() {
   const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null);
   const router = useRouter();
   const [theaters, setTheaters] = useState<Theater[]>([]);
+  const { userData } = useAuth();
+  const [theaterOwner, setTheaterOwner] = useState<Owner | null>(null);
+  // console.log("userData", userData);
+  const fetchTheaterOwner = async () => {
+    if (!userData) return;
 
+    const res = await getTheaterOwner(userData.id);
+    if (res && res.statusCode === 200) {
+      setTheaterOwner(res.data);
+    } else {
+      setTheaterOwner(null);
+    }
+  };
+  useEffect(() => {
+    if (userData) {
+      fetchTheaterOwner();
+    }
+  }, [userData]);
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -53,7 +76,8 @@ export default function Theaters() {
   }, []);
 
   const fetchTheaters = async () => {
-    const res = await getAllTheaters();
+    if (!theaterOwner) return;
+    const res = await getTheatersByOwner(theaterOwner.id);
     if (res && res.statusCode === 200 && Array.isArray(res.data)) {
       setTheaters(res.data);
     } else {
@@ -63,7 +87,7 @@ export default function Theaters() {
 
   useEffect(() => {
     fetchTheaters();
-  }, []);
+  }, [theaterOwner]);
 
   /* ---------- FILTER + SORT ---------- */
   const filtered = useMemo(() => {
@@ -146,7 +170,7 @@ export default function Theaters() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6">
+                <TableCell colSpan={6} className="text-center py-6">
                   Không có dữ liệu
                 </TableCell>
               </TableRow>

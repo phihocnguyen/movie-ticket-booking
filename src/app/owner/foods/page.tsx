@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Plus, Trash } from "lucide-react";
-import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
 import {
   Table,
   TableBody,
@@ -13,142 +12,190 @@ import {
 } from "@/components/ui/table";
 import BaseModal from "../components/BaseModal";
 import Pagination from "../components/Pagination";
-import { deleteOwner, getAllOwner } from "@/app/services/admin/ownerService";
 import {
   confirmDelete,
   showErrorMessage,
   showSuccess,
 } from "@/app/utils/alertHelper";
-import OwnerForm from "./components/OwnerForm";
-import { useRouter } from "next/navigation";
+import {
+  deleteFood,
+  getAllFoodByOwner,
+  getOwnerByUserId,
+} from "@/app/services/owner/foodService";
+import FoodForm from "./components/FoodForm";
+import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
+import { Owner } from "@/app/admin/users/owners/page";
+// Tùy bạn tổ chức
 
-export interface Owner {
+export interface Food {
   id: number;
-  user: {
+  theaterId: number;
+  name: string;
+  description: string;
+  price: number | string;
+  imageUrl: File | null;
+  category: string;
+  preparationTime: number | string;
+  quantity: number | string;
+  isActive: boolean;
+  theater?: {
     id: number;
     name: string;
-    email: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
     phoneNumber: string;
-    username: string;
-    fullName: string;
-    dateOfBirth: string;
-    role: "THEATER_OWNER";
-    password: string | null;
+    email: string;
+    openingTime: string; // "08:00"
+    closingTime: string; // "22:00"
+    totalScreens: number;
   };
 }
 
-export default function Staffs() {
+export default function Foods() {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
   const [showModal, setShowModal] = useState(false);
-  const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
-  const [allOwner, setAllOwner] = useState<Owner[]>([]);
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [allFood, setAllFood] = useState<Food[]>([]);
   const [formKey, setFormKey] = useState(Date.now());
-  const router = useRouter();
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    // Có thể kiểm tra thêm role nếu cần
-    if (!token) {
-      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+  const [owner, setOwner] = useState<Owner | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [theaterFilter, setTheaterFilter] = useState("");
+  const fetchOwner = async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+    const res = await getOwnerByUserId(Number(userId));
+    if (res && res.statusCode === 200 && res.data) {
+      setOwner(res.data);
+    } else {
+      setOwner(null);
     }
+  };
+  const fetchData = async () => {
+    try {
+      if (!owner) return;
+      const res = await getAllFoodByOwner(owner.id);
+      console.log("res", res);
+      if (res && res.statusCode === 200 && res.data) {
+        setAllFood(res.data);
+      } else {
+        setAllFood([]);
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi lấy danh sách food:" + error);
+    }
+  };
+  useEffect(() => {
+    fetchOwner();
   }, []);
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await getAllOwner();
-        console.log("Check res", res);
-        if (res === null) {
-          setAllOwner([]);
-        } else {
-          const data = res.data;
-          setAllOwner(data);
-        }
-      } catch (error) {
-        console.error("Lỗi khi lấy danh sách user:", error);
-      }
-    };
-    fetchUsers();
-  }, []);
+    fetchData();
+  }, [owner]);
+  // console.log("allFood", allFood);
   const filtered = useMemo(() => {
-    return allOwner
-      .filter((owner) => {
-        return (
-          owner.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-          owner.user?.email?.toLowerCase().includes(search.toLowerCase())
-        );
+    return allFood
+      .filter((food) => {
+        const matchesSearch =
+          food.name.toLowerCase().includes(search.toLowerCase()) ||
+          food.category.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = categoryFilter
+          ? food.category === categoryFilter
+          : true;
+        const matchesTheater = theaterFilter
+          ? food.theater?.name === theaterFilter
+          : true;
+        return matchesSearch && matchesCategory && matchesTheater;
       })
-      .sort((a, b) => (sortOrder === "asc" ? a.id - b.id : b.id - a.id));
-  }, [search, sortOrder, allOwner]);
+      .sort((a, b) => {
+        const priceA =
+          typeof a.price === "string" ? parseFloat(a.price) || 0 : a.price;
+        const priceB =
+          typeof b.price === "string" ? parseFloat(b.price) || 0 : b.price;
+        return sortOrder === "asc" ? priceA - priceB : priceB - priceA;
+      });
+  }, [search, sortOrder, allFood, categoryFilter, theaterFilter]);
 
-  const paginatedStaffs = filtered.slice(
+  const paginatedFoods = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-  const totalPages = Math.ceil(filtered.length / pageSize);
-
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, pageSize]);
+  }, [search, pageSize, categoryFilter, theaterFilter]);
+  const totalPages = Math.ceil(filtered.length / pageSize);
 
   const toggleSort = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
-  const handleUpdatedOwner = (updated: Owner) => {
-    // Cập nhật danh sách
-    setAllOwner((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    // Gán lại selectedCustomer để form nhận props mới
-    setSelectedOwner(updated);
+  const reload = () => {
+    fetchData();
   };
-  const handleDelete = async (ownerId: number) => {
+  const handleDelete = async (id: number) => {
     const confirmed = await confirmDelete(
-      "Bạn có chắc muốn xóa chủ rạp này không?"
+      "Bạn có chắc muốn xóa món này không?"
     );
-    // console.log(">>>>check confirmed:", confirmed); // Log id ra console
-    // console.log("User id:", userId); // Log id ra console
     if (!confirmed) return;
     try {
-      const result = await deleteOwner(ownerId);
-      // console.log(">>>>check result:", result); // Log kết quả xóa ra console
-      if (!result) {
+      const res = await deleteFood(id);
+      if (res && res.statusCode === 200) {
+        setAllFood((prev) => prev.filter((f) => f.id !== id));
+      } else {
         return;
       }
-      setAllOwner((prev) => prev.filter((owner) => owner.id !== ownerId));
-      showSuccess("Xóa chủ rạp thành công!");
+      showSuccess("Xóa món thành công!");
     } catch (error) {
-      showErrorMessage("Xóa chủ rạp thất bại!" + error);
+      showErrorMessage("Xóa món thất bại! " + error);
     }
   };
-  const reload = async () => {
-    try {
-      const res = await getAllOwner();
-      console.log("Check res", res);
-      if (res === null) {
-        setAllOwner([]);
-      } else {
-        const data = res.data;
-        setAllOwner(data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách user:", error);
-    }
-  };
+  const categories = Array.from(new Set(allFood.map((f) => f.category)));
+  const theaters = Array.from(new Set(allFood.map((f) => f.theater?.name)));
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
         <div className="flex gap-4 w-full justify-between">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên hoặc email"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
-          />
+          <div className="flex gap-4 w-full">
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên món"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:ring-0 focus:border-[#1677ff] outline-none"
+            />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full md:w-1/4 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Tất cả loại</option>
+              {categories.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <select
+              value={theaterFilter}
+              onChange={(e) => setTheaterFilter(e.target.value)}
+              className="w-full md:w-1/4 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Tất cả rạp</option>
+              {theaters.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             className="flex gap-2.5 border px-10 py-1.5 rounded-[8px] bg-[#432DD7] text-white"
             onClick={() => {
-              setSelectedOwner(null);
+              setSelectedFood(null);
               setShowModal(true);
               setFormKey(Date.now());
             }}
@@ -163,56 +210,67 @@ export default function Staffs() {
           <TableHeader>
             <TableRow className="bg-gray-200 text-sm text-gray-700 hover:bg-gray-200">
               <TableHead className="px-4 py-4">STT</TableHead>
-              <TableHead className="px-4 py-4">Họ và tên</TableHead>
-              <TableHead className="px-4 py-4">Email</TableHead>
-              <TableHead className="px-4 py-4">Số điện thoại</TableHead>
-              <TableHead className="px-4 py-4">Ngày sinh</TableHead>
+              <TableHead className="px-4 py-4">Tên món</TableHead>
+              <TableHead
+                onClick={toggleSort}
+                className="flex items-center justify-start px-4 py-4 mt-1.5 cursor-pointer select-none gap-1"
+              >
+                Giá
+                {sortOrder === "desc" ? (
+                  <IoMdArrowDropdown className="w-5 h-5 mt-0.5" />
+                ) : (
+                  <IoMdArrowDropup className="w-5 h-5 mt-0.5" />
+                )}
+              </TableHead>
+
+              <TableHead className="px-4 py-4">Loại</TableHead>
+              <TableHead className="px-4 py-4">Rạp</TableHead>
               <TableHead className="px-4 py-4">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedStaffs?.length === 0 ? (
-              <TableRow className="hover:bg-white">
+            {paginatedFoods.length === 0 ? (
+              <TableRow>
                 <TableCell
-                  colSpan={6}
-                  className="text-center py-6 text-gray-500 hover:bg-white"
+                  colSpan={7}
+                  className="text-center py-6 text-gray-500"
                 >
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedStaffs?.map((owner, index) => (
+              paginatedFoods.map((food, index) => (
                 <TableRow
-                  key={owner.id}
+                  key={food.id}
                   className="hover:bg-gray-100 transition"
                 >
                   <TableCell className="px-4 py-4">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
+                  <TableCell className="px-4 py-4">{food.name}</TableCell>
                   <TableCell className="px-4 py-4">
-                    {owner.user.fullName}
+                    {typeof food.price === "string"
+                      ? Number(food.price).toLocaleString()
+                      : food.price.toLocaleString()}
+                    đ
                   </TableCell>
+                  <TableCell className="px-4 py-4">{food.category}</TableCell>
                   <TableCell className="px-4 py-4">
-                    {owner.user.email}
+                    {food.theater?.name}
                   </TableCell>
-                  <TableCell className="px-4 py-4">
-                    {owner.user.phoneNumber}
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    {owner.user.dateOfBirth}
-                  </TableCell>
+
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2 items-center">
                       <Eye
-                        className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
+                        className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110"
                         onClick={() => {
-                          setSelectedOwner(owner);
+                          setSelectedFood(food);
                           setShowModal(true);
                         }}
                       />
                       <Trash
-                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
-                        onClick={() => handleDelete(owner.id)}
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110"
+                        onClick={() => handleDelete(food.id)}
                       />
                     </div>
                   </TableCell>
@@ -227,7 +285,7 @@ export default function Staffs() {
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
-        onPageChange={(page) => setCurrentPage(page)}
+        onPageChange={setCurrentPage}
         onPageSizeChange={(size) => {
           setPageSize(size);
           setCurrentPage(1);
@@ -237,15 +295,14 @@ export default function Staffs() {
       {showModal && (
         <BaseModal
           open={showModal}
-          title={selectedOwner ? "Chi tiết nhân viên" : "Thêm nhân viên mới"}
+          title={selectedFood ? "Chi tiết món ăn" : "Thêm món mới"}
           onClose={() => setShowModal(false)}
         >
-          <OwnerForm
-            owner={selectedOwner}
+          <FoodForm
+            food={selectedFood}
             reload={reload}
             setShowModal={setShowModal}
             key={formKey}
-            handleUpdatedOwner={handleUpdatedOwner}
           />
         </BaseModal>
       )}
