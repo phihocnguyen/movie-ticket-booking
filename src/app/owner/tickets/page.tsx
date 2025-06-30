@@ -19,22 +19,58 @@ import {
   showErrorMessage,
   showSuccess,
 } from "@/app/utils/alertHelper";
-import OwnerForm from "./components/OwnerForm";
-import { useRouter } from "next/navigation";
 
-export interface Owner {
+import { useRouter } from "next/navigation";
+import { getTheaterOwnerByUserId } from "@/app/services/owner/systemService";
+import { getAllTicketByOwner } from "@/app/services/owner/tickerService";
+import { getTheatersByOwner } from "@/app/services/owner/theaterService";
+import TicketForm from "./components/TicketForm";
+
+export interface Ticket {
   id: number;
   user: {
     id: number;
-    name: string;
+    fullName: string;
     email: string;
     phoneNumber: string;
-    username: string;
-    fullName: string;
-    dateOfBirth: string;
-    role: "THEATER_OWNER";
-    password: string | null;
   };
+  showtime: {
+    id: number;
+    movie: {
+      id: number;
+      title: string;
+    };
+    screen: {
+      id: number;
+      name: string;
+    };
+    theater: {
+      id: number;
+      name: string;
+      address: string;
+    };
+    startTime: string;
+    // date: string;
+  };
+  bookingSeats: {
+    seatId: number;
+    price: number;
+    seatName: string;
+    seatType: string;
+    rowNumber: null;
+    columnNumber: null;
+  };
+  bookingFoods: {
+    foodInventoryId: number;
+    quantity: number;
+    price: number;
+    foodName: string;
+  };
+  bookingTime: string;
+  status: string;
+  totalAmount: number;
+  totalTicketPrice: number;
+  totalFoodPrice: number;
 }
 
 export default function Staffs() {
@@ -42,50 +78,97 @@ export default function Staffs() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
-  const [allOwner, setAllOwner] = useState<Owner[]>([]);
-  const [formKey, setFormKey] = useState(Date.now());
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+  const [ownerId, setOwnerId] = useState<number | null>(null);
+  const [theaters, setTheaters] = useState<{ id: number; name: string }[]>([]);
+  const [selectedTheaterId, setSelectedTheaterId] = useState<number | "all">(
+    "all"
+  );
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const router = useRouter();
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [formKey, setFormKey] = useState(0);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    // Có thể kiểm tra thêm role nếu cần
     if (!token) {
-      router.replace("/login"); // đẩy về login nếu chưa đăng nhập
+      router.replace("/login");
     }
   }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const userId = Number(localStorage.getItem("userId"));
+      if (!userId) {
+        showErrorMessage("Không tìm thấy userId");
+        return;
+      }
+      const result = await getTheaterOwnerByUserId(userId);
+      if (!result || !result.data || !result.data.id) {
+        showErrorMessage("Không tìm thấy ownerId");
+        return;
+      }
+      const ownerId = result.data.id;
+      setOwnerId(ownerId);
+      const res = await getAllTicketByOwner(ownerId);
+      if (res && res.data && res.statusCode === 200) {
+        setAllTickets(res.data);
+      } else {
+        setAllTickets([]);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách vé:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
+    fetchTickets();
+  }, []);
+
+  useEffect(() => {
+    if (!ownerId) return;
+    const fetchTheaters = async () => {
       try {
-        const res = await getAllOwner();
-        console.log("Check res", res);
-        if (res === null) {
-          setAllOwner([]);
+        const res = await getTheatersByOwner(ownerId);
+        if (res && res.data && Array.isArray(res.data)) {
+          setTheaters(res.data.map((t: any) => ({ id: t.id, name: t.name })));
         } else {
-          const data = res.data;
-          setAllOwner(data);
+          setTheaters([]);
         }
       } catch (error) {
-        console.error("Lỗi khi lấy danh sách user:", error);
+        setTheaters([]);
       }
     };
-    fetchUsers();
-  }, []);
+    fetchTheaters();
+  }, [ownerId]);
+
+  console.log("allTickets", allTickets);
   const filtered = useMemo(() => {
-    return allOwner
-      .filter((owner) => {
-        return (
-          owner.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-          owner.user?.email?.toLowerCase().includes(search.toLowerCase())
-        );
+    return allTickets
+      .filter((ticket) => {
+        const matchSearch =
+          ticket.user.fullName
+            .toLowerCase()
+            .includes(search.trim().toLowerCase()) ||
+          ticket.user.phoneNumber
+            .toLowerCase()
+            .includes(search.trim().toLowerCase());
+        const matchTheater =
+          selectedTheaterId === "all" ||
+          ticket.showtime.theater.id === selectedTheaterId;
+        const matchStatus =
+          selectedStatus === "all" || ticket.status === selectedStatus;
+        return matchSearch && matchTheater && matchStatus;
       })
       .sort((a, b) => (sortOrder === "asc" ? a.id - b.id : b.id - a.id));
-  }, [search, sortOrder, allOwner]);
+  }, [search, sortOrder, allTickets, selectedTheaterId, selectedStatus]);
 
-  const paginatedStaffs = filtered.slice(
+  const paginatedTickets = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
+  console.log("paginatedTickets", paginatedTickets);
   const totalPages = Math.ceil(filtered.length / pageSize);
 
   useEffect(() => {
@@ -95,67 +178,47 @@ export default function Staffs() {
   const toggleSort = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
-  const handleUpdatedOwner = (updated: Owner) => {
-    // Cập nhật danh sách
-    setAllOwner((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    // Gán lại selectedCustomer để form nhận props mới
-    setSelectedOwner(updated);
+
+  const reload = () => {
+    fetchTickets();
   };
-  const handleDelete = async (ownerId: number) => {
-    const confirmed = await confirmDelete(
-      "Bạn có chắc muốn xóa chủ rạp này không?"
-    );
-    // console.log(">>>>check confirmed:", confirmed); // Log id ra console
-    // console.log("User id:", userId); // Log id ra console
-    if (!confirmed) return;
-    try {
-      const result = await deleteOwner(ownerId);
-      // console.log(">>>>check result:", result); // Log kết quả xóa ra console
-      if (!result) {
-        return;
-      }
-      setAllOwner((prev) => prev.filter((owner) => owner.id !== ownerId));
-      showSuccess("Xóa chủ rạp thành công!");
-    } catch (error) {
-      showErrorMessage("Xóa chủ rạp thất bại!" + error);
-    }
-  };
-  const reload = async () => {
-    try {
-      const res = await getAllOwner();
-      console.log("Check res", res);
-      if (res === null) {
-        setAllOwner([]);
-      } else {
-        const data = res.data;
-        setAllOwner(data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách user:", error);
-    }
-  };
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-        <div className="flex gap-4 w-full justify-between">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên hoặc email"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
-          />
-          <button
-            className="flex gap-2.5 border px-10 py-1.5 rounded-[8px] bg-[#432DD7] text-white"
-            onClick={() => {
-              setSelectedOwner(null);
-              setShowModal(true);
-              setFormKey(Date.now());
-            }}
-          >
-            <Plus /> Thêm
-          </button>
-        </div>
+      <div className="flex gap-4 w-full justify-start">
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tên hoặc số điện thoại"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+        />
+        <select
+          className="w-full md:w-1/4 px-3 py-[6px] border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+          value={selectedTheaterId}
+          onChange={(e) =>
+            setSelectedTheaterId(
+              e.target.value === "all" ? "all" : Number(e.target.value)
+            )
+          }
+        >
+          <option value="all">Tất cả rạp</option>
+          {theaters.map((theater) => (
+            <option key={theater.id} value={theater.id}>
+              {theater.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="w-full md:w-1/4 px-3 py-[6px] border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="PENDING">Chưa thanh toán</option>
+          <option value="CONFIRMED">Đã thanh toán</option>
+          <option value="CANCELLED">Đã huỷ</option>
+        </select>
       </div>
 
       <div className="rounded-xl overflow-hidden border border-gray-200 bg-white h-[400px]">
@@ -164,57 +227,62 @@ export default function Staffs() {
             <TableRow className="bg-gray-200 text-sm text-gray-700 hover:bg-gray-200">
               <TableHead className="px-4 py-4">STT</TableHead>
               <TableHead className="px-4 py-4">Họ và tên</TableHead>
-              <TableHead className="px-4 py-4">Email</TableHead>
               <TableHead className="px-4 py-4">Số điện thoại</TableHead>
-              <TableHead className="px-4 py-4">Ngày sinh</TableHead>
+              <TableHead className="px-4 py-4">Phim</TableHead>
+              <TableHead className="px-4 py-4">Rạp</TableHead>
+              <TableHead className="px-4 py-4">Địa chỉ rạp</TableHead>
+              <TableHead className="px-4 py-4">Suất chiếu</TableHead>
+              <TableHead className="px-4 py-4">Trạng thái</TableHead>
               <TableHead className="px-4 py-4">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedStaffs?.length === 0 ? (
+            {paginatedTickets?.length === 0 ? (
               <TableRow className="hover:bg-white">
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="text-center py-6 text-gray-500 hover:bg-white"
                 >
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedStaffs?.map((owner, index) => (
+              paginatedTickets?.map((ticket, index) => (
                 <TableRow
-                  key={owner.id}
+                  key={ticket.id}
                   className="hover:bg-gray-100 transition"
                 >
                   <TableCell className="px-4 py-4">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {owner.user.fullName}
+                    {ticket.user.fullName}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {owner.user.email}
+                    {ticket.user.phoneNumber}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {owner.user.phoneNumber}
+                    {ticket.showtime.movie.title}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    {owner.user.dateOfBirth}
+                    {ticket.showtime.theater.name}
                   </TableCell>
                   <TableCell className="px-4 py-4">
-                    <div className="flex gap-2 items-center">
-                      <Eye
-                        className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
-                        onClick={() => {
-                          setSelectedOwner(owner);
-                          setShowModal(true);
-                        }}
-                      />
-                      <Trash
-                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
-                        onClick={() => handleDelete(owner.id)}
-                      />
-                    </div>
+                    {ticket.showtime.theater.address}
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
+                    {ticket.showtime.startTime}
+                  </TableCell>
+                  <TableCell className="px-4 py-4">{ticket.status}</TableCell>
+                  <TableCell className="px-4 py-4">
+                    <Eye
+                      className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
+                      onClick={() => {
+                        setSelectedTicket(ticket);
+                        setShowModal(true);
+                        setFormKey((prev) => prev + 1);
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -237,15 +305,15 @@ export default function Staffs() {
       {showModal && (
         <BaseModal
           open={showModal}
-          title={selectedOwner ? "Chi tiết nhân viên" : "Thêm nhân viên mới"}
+          title={selectedTicket ? "Chi tiết vé" : "Thêm vé mới"}
           onClose={() => setShowModal(false)}
         >
-          <OwnerForm
-            owner={selectedOwner}
+          <TicketForm
+            owner={selectedTicket}
             reload={reload}
             setShowModal={setShowModal}
+            handleUpdatedOwner={() => {}}
             key={formKey}
-            handleUpdatedOwner={handleUpdatedOwner}
           />
         </BaseModal>
       )}
