@@ -24,7 +24,12 @@ interface ShowtimeProps {
 interface Showtime {
   id: number;
   movie: { id: number; title: string; titleVi?: string };
-  screen: { id: number; screenName: string; theaterName?: string; theater?: { id: number; name: string; address: string } };
+  screen: {
+    id: number;
+    screenName: string;
+    theaterName?: string;
+    theater?: { id: number; name: string; address: string };
+  };
   theater?: { id: number; name: string; address: string };
   startTime: string;
   endTime: string;
@@ -64,7 +69,10 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({
   // Fetch showtimes theo ngày
   const fetchShowtimes = async (date: Date) => {
     try {
-      const res = await getShowtimesByMovieAndDate(movieId, formatDateForApi(date));
+      const res = await getShowtimesByMovieAndDate(
+        movieId,
+        formatDateForApi(date)
+      );
       setShowtimes(res.data || []);
     } catch (error) {
       setShowtimes([]);
@@ -102,8 +110,15 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({
       if (!theaterId) return acc;
       if (!acc[theaterId]) {
         acc[theaterId] = {
-          theaterName: showtime.theater?.name || showtime.screen?.theater?.name || showtime.screen?.theaterName || "",
-          theaterAddress: showtime.theater?.address || showtime.screen?.theater?.address || "",
+          theaterName:
+            showtime.theater?.name ||
+            showtime.screen?.theater?.name ||
+            showtime.screen?.theaterName ||
+            "",
+          theaterAddress:
+            showtime.theater?.address ||
+            showtime.screen?.theater?.address ||
+            "",
           showtimes: [],
         };
       }
@@ -121,9 +136,19 @@ const ShowtimeComponent: React.FC<ShowtimeProps> = ({
   const groupedTheaters = groupShowtimesByTheater(filteredShowtimes);
 
   const handleSelectTime = (showtime: Showtime) => {
+    console.log("showtime", showtime);
     const params = new URLSearchParams();
     params.set("movieTitle", String(movieTitle || ""));
-    params.set("theaterName", String(showtime.theater?.name || showtime.screen?.theater?.name || showtime.screen?.theaterName || ""));
+    params.set(
+      "theaterName",
+      String(
+        showtime.theater?.name ||
+          showtime.screen?.theater?.name ||
+          showtime.screen?.theaterName ||
+          ""
+      )
+    );
+    params.set("theaterId", String(showtime.theater?.id || ""));
     params.set("showTimeId", String(showtime.id ?? ""));
     params.set("showtime", String(showtime.startTime || ""));
     params.set("screenId", String(showtime.screen?.id ?? ""));

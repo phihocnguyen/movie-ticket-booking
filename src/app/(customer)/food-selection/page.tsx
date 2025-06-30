@@ -6,11 +6,14 @@ interface PageProps {
 }
 
 export default function FoodSelectionPage({ searchParams }: PageProps) {
-  const movieTitle = searchParams.movieTitle as string || "";
-  const theaterName = searchParams.theaterName as string || "";
-  const showtime = searchParams.showtime as string || "";
-  const dateStr = searchParams.date as string || new Date().toISOString();
-  const selectedSeats = (searchParams.seats as string || "").split(",").filter(Boolean);
+  const movieTitle = (searchParams.movieTitle as string) || "";
+  const theaterName = (searchParams.theaterName as string) || "";
+  const showtime = (searchParams.showtime as string) || "";
+  const dateStr = (searchParams.date as string) || new Date().toISOString();
+  const selectedSeats = ((searchParams.seats as string) || "")
+    .split(",")
+    .filter(Boolean);
+  const theaterId = (searchParams.theaterId as string) || "";
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -20,7 +23,8 @@ export default function FoodSelectionPage({ searchParams }: PageProps) {
         showtime={showtime}
         dateStr={dateStr}
         selectedSeats={selectedSeats}
+        theaterId={theaterId}
       />
     </Suspense>
   );
-} 
+}
