@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { createRoom, editRoom } from "@/app/services/owner/roomService";
-import { getAllTheaters, getTheaterOwner, getTheatersByOwner } from "@/app/services/owner/theaterService";
-import { showSuccess } from "@/app/utils/alertHelper";
+import {
+  getAllTheaters,
+  getTheaterOwner,
+  getTheatersByOwner,
+} from "@/app/services/owner/theaterService";
+import {
+  showSuccess,
+  showErrorMessage,
+  showWaringMessage,
+} from "@/app/utils/alertHelper";
 import { SquarePen } from "lucide-react";
 import dayjs from "dayjs";
 import { useAuth } from "@/app/context/AuthContext";
+import { getShowtimeByScreen } from "@/app/services/owner/showtimeService";
 
 /* ===== props ===== */
 interface RoomFormProps {
@@ -21,7 +30,7 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
   const [form, setForm] = useState({
     screenName: room?.screenName || "",
     screenType: room?.screenType || "2D",
-    totalSeats: room?.totalSeats || 0,
+    totalSeats: room?.totalSeats ? String(room.totalSeats) : "0",
     isActive: room?.isActive ?? true,
     theaterId: room?.theaterId || "",
   });
@@ -43,7 +52,11 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
       }
       if (ownerId) {
         const theatersRes = await getTheatersByOwner(ownerId);
-        if (theatersRes && theatersRes.statusCode === 200 && Array.isArray(theatersRes.data)) {
+        if (
+          theatersRes &&
+          theatersRes.statusCode === 200 &&
+          Array.isArray(theatersRes.data)
+        ) {
           setTheaters(theatersRes.data);
         }
       }
@@ -57,24 +70,49 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
     else setEdit(true);
   }, [room]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
       setForm((prev) => ({ ...prev, [name]: checked }));
     } else if (name === "totalSeats") {
-      setForm((prev) => ({ ...prev, totalSeats: Number(value) }));
+      const sanitizedValue = value.replace(/^0+(?=\d)/, "");
+      setForm((prev) => ({ ...prev, totalSeats: sanitizedValue }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
+  const validateForm = () => {
+    if (!form.screenName.trim()) {
+      showErrorMessage("Tên phòng không được để trống!");
+      return false;
+    }
+    if (!form.screenType.trim()) {
+      showErrorMessage("Loại phòng không được để trống!");
+      return false;
+    }
+    if (!form.totalSeats || Number(form.totalSeats) < 1) {
+      showErrorMessage("Tổng số ghế phải lớn hơn 0!");
+      return false;
+    }
+    if (!form.theaterId) {
+      showErrorMessage("Vui lòng chọn rạp phim!");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setLoading(true);
     try {
       const submitData = {
         ...form,
+        totalSeats: Number(form.totalSeats),
         theaterId: Number(form.theaterId),
       };
       let res;
@@ -89,12 +127,13 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
           setForm({
             screenName: "",
             screenType: "2D",
-            totalSeats: 0,
+            totalSeats: "0",
             isActive: true,
             theaterId: "",
           });
+          if (onClose) onClose();
         }
-        if (onClose) onClose();
+        setEdit(false);
         if (fetchRooms) fetchRooms();
       }
       setEdit(false);
@@ -109,7 +148,7 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
   return (
     <div className="max-h-[600px] overflow-y-auto pr-2">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <h2 className="text-2xl font-bold mb-4">{room ? "Chi tiết phòng chiếu" : "Tạo phòng chiếu mới"}</h2>
+        {/* <h2 className="text-2xl font-bold mb-4">{room ? "Chi tiết phòng chiếu" : "Tạo phòng chiếu mới"}</h2> */}
         <div className="flex items-center gap-5">
           <label className="w-[20%] text-[15px]">Tên phòng</label>
           <input
@@ -117,7 +156,6 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
             value={form.screenName}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable}
             placeholder="Tên phòng"
           />
@@ -129,7 +167,6 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
             value={form.screenType}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable}
           >
             <option value="2D">2D</option>
@@ -145,7 +182,6 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
             value={form.totalSeats}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable}
             placeholder="Tổng số ghế"
           />
@@ -157,7 +193,6 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
             value={form.theaterId}
             onChange={handleChange}
             className="w-[80%] border px-2 py-1.5 rounded-[8px] text-[15px] focus:ring-0 focus:border-[#1677ff] outline-none"
-            required
             disabled={disable || !theaterOwnerId}
           >
             <option value="">Chọn rạp phim</option>
@@ -172,7 +207,23 @@ export default function RoomForm({ room, onClose, fetchRooms }: RoomFormProps) {
           <div className="flex gap-5 text-[15px] my-2">
             <button
               type="button"
-              onClick={() => setEdit(true)}
+              onClick={async () => {
+                if (room?.id) {
+                  const res = await getShowtimeByScreen(room.id);
+                  if (
+                    res &&
+                    res.statusCode === 200 &&
+                    Array.isArray(res.data) &&
+                    res.data.length > 0
+                  ) {
+                    showWaringMessage(
+                      "Không thể chỉnh sửa vì phòng đã có suất chiếu!"
+                    );
+                    return;
+                  }
+                }
+                setEdit(true);
+              }}
               className="flex gap-2 items-center border p-[6px] rounded-lg bg-[#CCC6F4]"
             >
               Chỉnh sửa thông tin

@@ -237,7 +237,7 @@ export default function Staffs() {
       {showModal && (
         <BaseModal
           open={showModal}
-          title={selectedOwner ? "Chi tiết nhân viên" : "Thêm nhân viên mới"}
+          title={selectedOwner ? "Chi tiết chủ rạp" : "Thêm chủ rạp mới"}
           onClose={() => setShowModal(false)}
         >
           <OwnerForm

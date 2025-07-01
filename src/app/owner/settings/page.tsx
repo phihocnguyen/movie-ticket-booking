@@ -196,7 +196,7 @@ export default function SystemSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Cancel Fee */}
-          <div className="grid grid-cols-12 items-center gap-4">
+          {/* <div className="grid grid-cols-12 items-center gap-4">
             <label
               htmlFor="cancelFee"
               className="col-span-5 text-base font-medium"
@@ -215,7 +215,7 @@ export default function SystemSettingsPage() {
             />
           </div>
 
-          {/* Cancel Time Limit */}
+          
           <div className="grid grid-cols-12 items-center gap-4">
             <label
               htmlFor="cancelTimeLimit"
@@ -233,7 +233,7 @@ export default function SystemSettingsPage() {
               className="col-span-5 border rounded-[8px] px-4 py-2 focus:ring-0 focus:border-[#1677ff] outline-none"
               disabled={!editing}
             />
-          </div>
+          </div> */}
 
           {/* Price Seat Regular */}
           <div className="grid grid-cols-12 items-center gap-4">

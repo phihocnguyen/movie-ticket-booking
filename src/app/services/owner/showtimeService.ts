@@ -19,4 +19,8 @@ export const createShowtime = async (values: any) => {
 export const getAllMovies = async () => {
   const result = await get("api/movies");
   return result;
-}; 
+};
+export const getShowtimeByScreen = async (screenId: number) => {
+  const result = await get(`api/showtimes/screen/${screenId}`);
+  return result;
+};

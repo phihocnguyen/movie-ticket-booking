@@ -28,7 +28,7 @@ export default function DashBoard() {
               Tổng doanh thu
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              1.2 tỷ VND
+              150 triệu VND
             </div>
           </div>
         </div>
@@ -41,7 +41,7 @@ export default function DashBoard() {
               Tổng vé đã bán
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              12,500
+              1.500
             </div>
           </div>
         </div>
@@ -52,10 +52,10 @@ export default function DashBoard() {
           </div>
           <div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Tổng số phim
+              Tổng suất chiếu
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              52
+              10
             </div>
           </div>
         </div>

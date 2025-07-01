@@ -1,9 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Ticket, Calendar, Clock, MapPin, Users, Download, Eye } from 'lucide-react';
-import axiosInstance from '@/axiosInstance';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Ticket,
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Download,
+  Eye,
+} from "lucide-react";
+import axiosInstance from "@/axiosInstance";
 
 interface BookingSeat {
   seatId: number;
@@ -40,7 +48,7 @@ interface Booking {
   showtimeId: number;
   bookingTime: string;
   totalAmount: number;
-  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
   isActive: boolean;
   bookingSeats: BookingSeat[];
   bookingFoods: BookingFood[];
@@ -53,23 +61,23 @@ interface Booking {
 export default function BookingHistory() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const userId = localStorage.getItem('userId');
+        const userId = localStorage.getItem("userId");
         if (!userId) {
-          setError('User not authenticated');
+          setError("User not authenticated");
           setLoading(false);
           return;
         }
 
         const response = await axiosInstance.get(`/bookings/user/${userId}`);
-        setBookings(response.data);
+        setBookings(response.data.data);
       } catch (error) {
-        setError('An error occurred while fetching bookings');
-        console.error('Error fetching bookings:', error);
+        setError("An error occurred while fetching bookings");
+        console.error("Error fetching bookings:", error);
       } finally {
         setLoading(false);
       }
@@ -78,16 +86,16 @@ export default function BookingHistory() {
     fetchBookings();
   }, []);
 
-  const getStatusColor = (status: Booking['status']) => {
+  const getStatusColor = (status: Booking["status"]) => {
     switch (status) {
-      case 'PENDING':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-      case 'COMPLETED':
-        return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'CANCELLED':
-        return 'bg-red-500/20 text-red-400 border-red-500/50';
+      case "PENDING":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "COMPLETED":
+        return "bg-green-500/20 text-green-400 border-green-500/50";
+      case "CANCELLED":
+        return "bg-red-500/20 text-red-400 border-red-500/50";
       default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+        return "bg-gray-500/20 text-gray-400 border-gray-500/50";
     }
   };
 
@@ -116,7 +124,7 @@ export default function BookingHistory() {
       </div>
     );
   }
-
+  // console.log("bookings", bookings);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -145,15 +153,23 @@ export default function BookingHistory() {
               <div className="flex-1 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-xl font-bold text-white">{booking.showtime.movieTitle}</h3>
+                    <h3 className="text-xl font-bold text-white">
+                      {booking.showtime.movieTitle}
+                    </h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-3 py-1 rounded-full text-sm border ${getStatusColor(booking.status)}`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm border ${getStatusColor(
+                          booking.status
+                        )}`}
+                      >
                         {booking.status}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">{booking.totalAmount.toLocaleString('vi-VN')}đ</p>
+                    <p className="text-2xl font-bold text-white">
+                      {booking.totalAmount.toLocaleString("vi-VN")}đ
+                    </p>
                     <p className="text-sm text-gray-400">Total Amount</p>
                   </div>
                 </div>
@@ -161,30 +177,52 @@ export default function BookingHistory() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.showtime.startTime.split(' ')[0]}</span>
+                    <span className="text-gray-300">
+                      {booking.showtime.startTime.split(" ")[0]}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.showtime.startTime.split(' ')[1]}</span>
+                    <span className="text-gray-300">
+                      {booking.showtime.startTime.split(" ")[1]}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.showtime.theaterName}</span>
+                    <span className="text-gray-300">
+                      {booking.showtime.theaterName}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-indigo-400" />
-                    <span className="text-gray-300">{booking.bookingSeats.map(seat => seat.seatName).join(', ')}</span>
+                    <span className="text-gray-300">
+                      {booking.bookingSeats
+                        .map((seat) => seat.seatName)
+                        .join(", ")}
+                    </span>
                   </div>
                 </div>
 
                 {booking.bookingFoods.length > 0 && (
                   <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">Food & Drinks</h4>
+                    <h4 className="text-sm font-medium text-gray-400 mb-2">
+                      Food & Drinks
+                    </h4>
                     <div className="space-y-2">
                       {booking.bookingFoods.map((food, index) => (
-                        <div key={index} className="flex justify-between text-sm">
-                          <span className="text-gray-300">{food.foodName} x{food.quantity}</span>
-                          <span className="text-gray-300">{(food.price * food.quantity).toLocaleString('vi-VN')}đ</span>
+                        <div
+                          key={index}
+                          className="flex justify-between text-sm"
+                        >
+                          <span className="text-gray-300">
+                            {food.foodName} x{food.quantity}
+                          </span>
+                          <span className="text-gray-300">
+                            {(food.price * food.quantity).toLocaleString(
+                              "vi-VN"
+                            )}
+                            đ
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -192,15 +230,11 @@ export default function BookingHistory() {
                 )}
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    className="px-4 py-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
-                  >
+                  <button className="px-4 py-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2">
                     <Eye className="h-4 w-4" />
                     View Details
                   </button>
-                  <button
-                    className="px-4 py-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
-                  >
+                  <button className="px-4 py-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2">
                     <Download className="h-4 w-4" />
                     Download Ticket
                   </button>
@@ -212,4 +246,4 @@ export default function BookingHistory() {
       ))}
     </motion.div>
   );
-} 
+}

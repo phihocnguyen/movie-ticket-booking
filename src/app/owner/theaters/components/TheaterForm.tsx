@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createTheater, editTheater, getTheaterOwner } from "@/app/services/owner/theaterService";
+import {
+  createTheater,
+  editTheater,
+  getTheaterOwner,
+} from "@/app/services/owner/theaterService";
 import { SquarePen } from "lucide-react";
 import { showSuccess } from "@/app/utils/alertHelper";
 import { useAuth } from "@/app/context/AuthContext";
@@ -25,7 +29,15 @@ type FormState = {
   totalScreens: number;
 };
 
-export default function TheaterForm({ theater, onClose, fetchTheaters }: { theater?: any, onClose?: () => void, fetchTheaters?: () => void }) {
+export default function TheaterForm({
+  theater,
+  onClose,
+  fetchTheaters,
+}: {
+  theater?: any;
+  onClose?: () => void;
+  fetchTheaters?: () => void;
+}) {
   const [edit, setEdit] = useState(!theater);
   const [form, setForm] = useState({
     name: theater?.name || "",
@@ -66,7 +78,9 @@ export default function TheaterForm({ theater, onClose, fetchTheaters }: { theat
     fetchTheaterOwnerId();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
     if (name === "isActive") {
       const checked = (e.target as HTMLInputElement).checked;
@@ -118,40 +132,139 @@ export default function TheaterForm({ theater, onClose, fetchTheaters }: { theat
   return (
     <div className="max-h-[600px] overflow-y-auto pr-2">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <h2 className="text-2xl font-bold mb-4">{theater ? "Chi tiết rạp" : "Tạo rạp chiếu phim mới"}</h2>
+        {/* <h2 className="text-2xl font-bold mb-4">{theater ? "Chi tiết rạp" : "Tạo rạp chiếu phim mới"}</h2> */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="name" value={form.name} onChange={handleChange} placeholder="Tên rạp" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="address" value={form.address} onChange={handleChange} placeholder="Địa chỉ" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="state" value={form.state} onChange={handleChange} placeholder="Tỉnh/Thành" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="city" value={form.city} onChange={handleChange} placeholder="Quận huyện" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="country" value={form.country} onChange={handleChange} placeholder="Quốc gia" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="zipCode" value={form.zipCode} onChange={handleChange} placeholder="Zip Code" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="phoneNumber" value={form.phoneNumber} onChange={handleChange} placeholder="Số điện thoại" className="border rounded px-3 py-2" required disabled={theater && !edit} />
-          <input name="email" value={form.email} onChange={handleChange} placeholder="Email" className="border rounded px-3 py-2" type="email" required disabled={theater && !edit} />
+          <input
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Tên rạp"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="address"
+            value={form.address}
+            onChange={handleChange}
+            placeholder="Địa chỉ"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="state"
+            value={form.state}
+            onChange={handleChange}
+            placeholder="Tỉnh/Thành"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="city"
+            value={form.city}
+            onChange={handleChange}
+            placeholder="Quận huyện"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="country"
+            value={form.country}
+            onChange={handleChange}
+            placeholder="Quốc gia"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="zipCode"
+            value={form.zipCode}
+            onChange={handleChange}
+            placeholder="Zip Code"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="phoneNumber"
+            value={form.phoneNumber}
+            onChange={handleChange}
+            placeholder="Số điện thoại"
+            className="border rounded px-3 py-2"
+            required
+            disabled={theater && !edit}
+          />
+          <input
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Email"
+            className="border rounded px-3 py-2"
+            type="email"
+            required
+            disabled={theater && !edit}
+          />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block mb-1">Giờ mở cửa</label>
-            <input name="openingTime" value={form.openingTime} onChange={handleChange} type="time" className="border rounded px-2 py-1 w-32" required disabled={theater && !edit} />
-        </div>
+            <input
+              name="openingTime"
+              value={form.openingTime}
+              onChange={handleChange}
+              type="time"
+              className="border rounded px-2 py-1 w-32"
+              required
+              disabled={theater && !edit}
+            />
+          </div>
           <div>
             <label className="block mb-1">Giờ đóng cửa</label>
-            <input name="closingTime" value={form.closingTime} onChange={handleChange} type="time" className="border rounded px-2 py-1 w-32" required disabled={theater && !edit} />
-        </div>
+            <input
+              name="closingTime"
+              value={form.closingTime}
+              onChange={handleChange}
+              type="time"
+              className="border rounded px-2 py-1 w-32"
+              required
+              disabled={theater && !edit}
+            />
+          </div>
         </div>
         <div>
           <label className="block mb-1">Tổng số phòng</label>
-          <input name="totalScreens" value={form.totalScreens} onChange={handleChange} placeholder="Số phòng chiếu" className="border rounded px-3 py-2" type="number" min={1} required disabled={theater && !edit} />
+          <input
+            name="totalScreens"
+            value={form.totalScreens}
+            onChange={handleChange}
+            placeholder="Số phòng chiếu"
+            className="border rounded px-3 py-2"
+            type="number"
+            min={1}
+            required
+            disabled={theater && !edit}
+          />
         </div>
         {theater && !edit && (
-          <button type="button" className="flex gap-2 items-center bg-[#CCC6F4] text-[#432DD7] px-4 py-2 rounded font-medium" onClick={() => setEdit(true)}>
+          <button
+            type="button"
+            className="flex gap-2 items-center bg-[#CCC6F4] text-[#432DD7] px-4 py-2 rounded font-medium"
+            onClick={() => setEdit(true)}
+          >
             <SquarePen className="w-4 h-4" /> Chỉnh sửa thông tin
           </button>
         )}
         {edit && (
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold mt-4" disabled={loading}>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded font-semibold mt-4"
+            disabled={loading}
+          >
             {loading ? "Đang lưu..." : theater ? "Cập nhật" : "Tạo rạp"}
-            </button>
+          </button>
         )}
       </form>
     </div>

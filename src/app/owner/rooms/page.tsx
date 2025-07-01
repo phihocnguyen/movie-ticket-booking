@@ -15,9 +15,22 @@ import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import RoomForm from "./components/RoomForm";
 import dayjs from "dayjs";
-import { getTheaterOwner, getTheatersByOwner } from "@/app/services/owner/theaterService";
-import { getRoomsByTheater } from "@/app/services/owner/roomService";
+import {
+  getTheaterOwner,
+  getTheatersByOwner,
+} from "@/app/services/owner/theaterService";
+import {
+  deleteRoom,
+  getRoomsByTheater,
+} from "@/app/services/owner/roomService";
 import { useAuth } from "@/app/context/AuthContext";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+  showWaringMessage,
+} from "@/app/utils/alertHelper";
+import { getShowtimeByScreen } from "@/app/services/owner/showtimeService";
 
 interface Room {
   id: number;
@@ -39,7 +52,9 @@ export default function Rooms() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [theaters, setTheaters] = useState<any[]>([]);
-  const [selectedTheaterId, setSelectedTheaterId] = useState<number | null>(null);
+  const [selectedTheaterId, setSelectedTheaterId] = useState<number | null>(
+    null
+  );
   const [theaterOwnerId, setTheaterOwnerId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -55,7 +70,11 @@ export default function Rooms() {
       }
       if (ownerId) {
         const theatersRes = await getTheatersByOwner(ownerId);
-        if (theatersRes && theatersRes.statusCode === 200 && Array.isArray(theatersRes.data)) {
+        if (
+          theatersRes &&
+          theatersRes.statusCode === 200 &&
+          Array.isArray(theatersRes.data)
+        ) {
           setTheaters(theatersRes.data);
           if (theatersRes.data.length > 0) {
             setSelectedTheaterId(theatersRes.data[0].id);
@@ -106,28 +125,62 @@ export default function Rooms() {
   const toggleSort = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
+  const handleDelete = async (id: number) => {
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa phòng chiếu này không?"
+    );
+    if (!confirmed) return;
+    // Gọi API kiểm tra showtime của phòng chiếu
+    const showtimesRes = await getShowtimeByScreen(id);
+    if (
+      showtimesRes &&
+      showtimesRes.statusCode === 200 &&
+      Array.isArray(showtimesRes.data) &&
+      showtimesRes.data.length > 0
+    ) {
+      showWaringMessage("Không thể xóa phòng chiếu vì đã có lịch chiếu!");
+      return;
+    }
+    try {
+      const res = await deleteRoom(id);
+      if (res && res.statusCode === 200) {
+        setRooms((prev) => prev.filter((r) => r.id !== id));
+      } else {
+        return;
+      }
+      showSuccess("Xóa phòng chiếu thành công!");
+    } catch (error) {
+      showErrorMessage("Xóa phòng chiếu thất bại! " + error);
+    }
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-        <div className="flex gap-2 items-center">
-          <span>Rạp:</span>
-          <select
-            value={selectedTheaterId ?? ""}
-            onChange={e => setSelectedTheaterId(Number(e.target.value))}
-            className="border rounded px-2 py-1"
-          >
-            {theaters.map(theater => (
-              <option key={theater.id} value={theater.id}>{theater.name}</option>
-            ))}
-          </select>
+        <div className="flex gap-5 items-center justify-start w-full">
+          <input
+            type="text"
+            placeholder="Tìm kiếm phòng chiếu theo tên..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full md:w-2/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md 
+            focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+          />
+          <div className="flex gap-3 items-center w-full">
+            <span>Rạp:</span>
+            <select
+              value={selectedTheaterId ?? ""}
+              onChange={(e) => setSelectedTheaterId(Number(e.target.value))}
+              className="border  px-3 py-[6px] rounded-md   md:w-[250px] 
+              focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+            >
+              {theaters.map((theater) => (
+                <option key={theater.id} value={theater.id}>
+                  {theater.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <input
-          type="text"
-          placeholder="Tìm kiếm phòng chiếu theo tên..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
-        />
         <button
           className="flex gap-2.5 border px-10 py-1.5 rounded-[8px] bg-[#432DD7] text-white"
           onClick={() => {
@@ -167,7 +220,9 @@ export default function Rooms() {
                   <TableCell className="px-4 py-4">{r.screenName}</TableCell>
                   <TableCell className="px-4 py-4">{r.screenType}</TableCell>
                   <TableCell className="px-4 py-4">{r.totalSeats}</TableCell>
-                  <TableCell className="px-4 py-4">{r.theater?.name || r.theaterId}</TableCell>
+                  <TableCell className="px-4 py-4">
+                    {r.theater?.name || r.theaterId}
+                  </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex gap-2">
                       <Eye
@@ -177,7 +232,12 @@ export default function Rooms() {
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => {
+                          handleDelete(r.id);
+                        }}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -203,7 +263,11 @@ export default function Rooms() {
           title={selectedRoom ? "Chi tiết phòng chiếu" : "Thêm phòng chiếu mới"}
           onClose={() => setShowModal(false)}
         >
-          <RoomForm room={selectedRoom || undefined} fetchRooms={() => fetchRooms(selectedTheaterId!)} onClose={() => setShowModal(false)} />
+          <RoomForm
+            room={selectedRoom || undefined}
+            fetchRooms={() => fetchRooms(selectedTheaterId!)}
+            onClose={() => setShowModal(false)}
+          />
         </BaseModal>
       )}
     </div>

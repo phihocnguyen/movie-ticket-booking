@@ -24,8 +24,8 @@ const chartData = [
   { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
   { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
   { browser: "firefox", visitors: 187, fill: "var(--color-firefox)" },
-  { browser: "edge", visitors: 173, fill: "var(--color-edge)" },
-  { browser: "other", visitors: 90, fill: "var(--color-other)" },
+  // { browser: "edge", visitors: 173, fill: "var(--color-edge)" },
+  // { browser: "other", visitors: 90, fill: "var(--color-other)" },
 ];
 
 const chartConfig = {
@@ -41,7 +41,7 @@ export default function DashBoardPieChart() {
   return (
     <Card className="flex flex-col w-1/3">
       <CardHeader className="items-center pb-0">
-        <CardTitle>Top 5 rạp có doanh thu cao nhất</CardTitle>
+        <CardTitle>Top 3 món ăn bán chạy nhất</CardTitle>
         {/* <CardDescription>January – June 2024</CardDescription> */}
       </CardHeader>
 
