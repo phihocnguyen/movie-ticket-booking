@@ -16,12 +16,19 @@ import BaseModal from "../components/BaseModal";
 import TheaterForm from "./components/TheaterForm";
 import { useRouter } from "next/navigation";
 import {
+  deleteTheater,
   getAllTheaters,
   getTheaterOwner,
   getTheatersByOwner,
 } from "@/app/services/owner/theaterService";
 import { useAuth } from "@/app/context/AuthContext";
 import { Owner } from "@/app/admin/users/owners/page";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
+import { getShowtimeByTheater } from "@/app/services/admin/theaterService";
 
 /* ────────────────── INTERFACE ────────────────── */
 export interface Theater {
@@ -120,6 +127,40 @@ export default function Theaters() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
   /* ────────────────── RENDER ────────────────── */
+  const handleDelete = async (id: number) => {
+    // Hiển thị confirmation dialog
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa rạp này không?"
+    );
+    if (!confirmed) return;
+
+    try {
+      // Kiểm tra xem rạp còn showtime không
+      const showtimeRes = await getShowtimeByTheater(id);
+      if (
+        showtimeRes &&
+        showtimeRes.statusCode === 200 &&
+        Array.isArray(showtimeRes.data) &&
+        showtimeRes.data.length > 0
+      ) {
+        showErrorMessage(
+          "Không thể xóa rạp vì vẫn còn suất chiếu trong rạp này!"
+        );
+        return;
+      }
+      const res = await deleteTheater(id);
+      if (res && res.statusCode === 200) {
+        showSuccess("Xóa rạp thành công");
+        setTheaters((prev) => prev.filter((theater) => theater.id !== id));
+      } else {
+        return;
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi xóa rạp" + error);
+      return;
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* SEARCH & NEW BUTTON */}
@@ -193,7 +234,12 @@ export default function Theaters() {
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => {
+                          handleDelete(t.id);
+                        }}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>

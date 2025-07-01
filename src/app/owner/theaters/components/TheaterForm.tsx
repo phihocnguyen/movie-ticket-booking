@@ -5,10 +5,17 @@ import {
   createTheater,
   editTheater,
   getTheaterOwner,
+  checkPhoneNumber,
+  checkEmail,
+  checkAddress,
 } from "@/app/services/owner/theaterService";
 import { SquarePen } from "lucide-react";
-import { showSuccess } from "@/app/utils/alertHelper";
+import { showSuccess, showErrorMessage } from "@/app/utils/alertHelper";
 import { useAuth } from "@/app/context/AuthContext";
+import {
+  getShowtimeByOwner,
+  getShowtimeByTheater,
+} from "@/app/services/owner/showtimeService";
 
 const defaultTime = { hour: 8, minute: 0, second: 0, nano: 0 };
 
@@ -92,8 +99,134 @@ export default function TheaterForm({
     }
   };
 
+  function validateTheaterForm(form: any): boolean {
+    if (!form.name || form.name.trim().length === 0) {
+      showErrorMessage("Tên rạp không được để trống");
+      return false;
+    }
+    if (!form.address || form.address.trim().length === 0) {
+      showErrorMessage("Địa chỉ không được để trống");
+      return false;
+    }
+    if (!form.city || form.city.trim().length === 0) {
+      showErrorMessage("Quận/huyện không được để trống");
+      return false;
+    }
+    if (!form.state || form.state.trim().length === 0) {
+      showErrorMessage("Tỉnh/Thành không được để trống");
+      return false;
+    }
+    if (!form.country || form.country.trim().length === 0) {
+      showErrorMessage("Quốc gia không được để trống");
+      return false;
+    }
+    if (!form.zipCode || form.zipCode.trim().length === 0) {
+      showErrorMessage("Mã bưu chính không được để trống");
+      return false;
+    }
+    if (!form.phoneNumber || form.phoneNumber.trim().length === 0) {
+      showErrorMessage("Số điện thoại rạp không được để trống");
+      return false;
+    } else if (!/^0\d{9}$/.test(form.phoneNumber)) {
+      showErrorMessage(
+        "Số điện thoại rạp phải bắt đầu bằng số 0 và có đúng 10 chữ số!"
+      );
+      return false;
+    }
+    if (!form.email || form.email.trim().length === 0) {
+      showErrorMessage("Email rạp không được để trống");
+      return false;
+    } else if (!/^\S+@gmail\.com$/.test(form.email)) {
+      showErrorMessage("Email rạp phải có dạng @gmail.com!");
+      return false;
+    }
+    if (!form.openingTime || form.openingTime.trim().length === 0) {
+      showErrorMessage("Giờ mở cửa không được để trống");
+      return false;
+    }
+    if (!form.closingTime || form.closingTime.trim().length === 0) {
+      showErrorMessage("Giờ đóng cửa không được để trống");
+      return false;
+    }
+    if (form.openingTime >= form.closingTime) {
+      showErrorMessage("Giờ mở cửa phải bé hơn giờ đóng cửa!");
+      return false;
+    }
+    if (
+      form.totalScreens === null ||
+      form.totalScreens === undefined ||
+      isNaN(Number(form.totalScreens))
+    ) {
+      showErrorMessage("Số phòng chiếu không được để trống và phải là số");
+      return false;
+    } else if (Number(form.totalScreens) <= 0) {
+      showErrorMessage("Số phòng chiếu phải lớn hơn 0");
+      return false;
+    }
+    return true;
+  }
+
+  async function validateTheaterFormAsync(
+    form: any,
+    theaterOwnerId: number | null,
+    theater?: any
+  ): Promise<boolean> {
+    if (!validateTheaterForm(form)) return false;
+    try {
+      // Kiểm tra trùng lặp phone number (chỉ khi thay đổi)
+      if (!theater || form.phoneNumber.trim() !== theater.phoneNumber) {
+        const phoneCheck = await checkPhoneNumber(form.phoneNumber.trim());
+        if (
+          phoneCheck &&
+          phoneCheck.statusCode === 200 &&
+          phoneCheck.data === true
+        ) {
+          showErrorMessage("Số điện thoại rạp đã tồn tại trong hệ thống!");
+          return false;
+        }
+      }
+      // Kiểm tra trùng lặp email (chỉ khi thay đổi)
+      if (!theater || form.email.trim() !== theater.email) {
+        const emailCheck = await checkEmail(form.email.trim());
+        if (
+          emailCheck &&
+          emailCheck.statusCode === 200 &&
+          emailCheck.data === true
+        ) {
+          showErrorMessage("Email rạp đã tồn tại trong hệ thống!");
+          return false;
+        }
+      }
+      // Kiểm tra trùng lặp address (chỉ khi thay đổi)
+      if (!theater || form.address.trim() !== theater.address) {
+        if (!theaterOwnerId) {
+          showErrorMessage("Không xác định được chủ rạp để kiểm tra địa chỉ!");
+          return false;
+        }
+        const addressCheck = await checkAddress(
+          form.address.trim(),
+          theaterOwnerId
+        );
+        if (
+          addressCheck &&
+          addressCheck.statusCode === 200 &&
+          addressCheck.data === true
+        ) {
+          showErrorMessage("Bạn đã có rạp tại địa chỉ đó!");
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      showErrorMessage("Có lỗi xảy ra khi kiểm tra dữ liệu: " + error);
+      return false;
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!(await validateTheaterFormAsync(form, theaterOwnerId, theater)))
+      return;
     setLoading(true);
     try {
       let res;
@@ -140,7 +273,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Tên rạp"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -149,7 +281,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Địa chỉ"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -158,7 +289,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Tỉnh/Thành"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -167,7 +297,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Quận huyện"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -176,7 +305,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Quốc gia"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -185,7 +313,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Zip Code"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -194,7 +321,6 @@ export default function TheaterForm({
             onChange={handleChange}
             placeholder="Số điện thoại"
             className="border rounded px-3 py-2"
-            required
             disabled={theater && !edit}
           />
           <input
@@ -204,7 +330,6 @@ export default function TheaterForm({
             placeholder="Email"
             className="border rounded px-3 py-2"
             type="email"
-            required
             disabled={theater && !edit}
           />
         </div>
@@ -217,7 +342,6 @@ export default function TheaterForm({
               onChange={handleChange}
               type="time"
               className="border rounded px-2 py-1 w-32"
-              required
               disabled={theater && !edit}
             />
           </div>
@@ -229,7 +353,6 @@ export default function TheaterForm({
               onChange={handleChange}
               type="time"
               className="border rounded px-2 py-1 w-32"
-              required
               disabled={theater && !edit}
             />
           </div>
@@ -244,15 +367,29 @@ export default function TheaterForm({
             className="border rounded px-3 py-2"
             type="number"
             min={1}
-            required
             disabled={theater && !edit}
           />
         </div>
         {theater && !edit && (
           <button
             type="button"
-            className="flex gap-2 items-center bg-[#CCC6F4] text-[#432DD7] px-4 py-2 rounded font-medium"
-            onClick={() => setEdit(true)}
+            className="flex gap-2 items-center bg-[#CCC6F4] px-4 py-2 rounded font-medium"
+            onClick={async () => {
+              // Kiểm tra rạp đã có suất chiếu chưa
+              if (theater.id) {
+                const res = await getShowtimeByTheater(theater.id);
+                if (
+                  res &&
+                  res.statusCode === 200 &&
+                  Array.isArray(res.data) &&
+                  res.data.length > 0
+                ) {
+                  showErrorMessage("Không thể chỉnh sửa rạp đã có suất chiếu!");
+                  return;
+                }
+              }
+              setEdit(true);
+            }}
           >
             <SquarePen className="w-4 h-4" /> Chỉnh sửa thông tin
           </button>
@@ -260,7 +397,7 @@ export default function TheaterForm({
         {edit && (
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded font-semibold mt-4"
+            className="w-full bg-[#432DD7] text-white py-2 rounded font-semibold mt-4"
             disabled={loading}
           >
             {loading ? "Đang lưu..." : theater ? "Cập nhật" : "Tạo rạp"}

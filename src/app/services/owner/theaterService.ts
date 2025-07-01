@@ -25,3 +25,20 @@ export const getTheatersByOwner = async (theaterOwnerId: number) => {
     `api/theaters/theater-owner?theaterOwnerId=${theaterOwnerId}`
   );
 };
+export const checkPhoneNumber = async (phoneNumber: string) => {
+  return await get(
+    `api/theaters/check-phone?phoneNumber=${encodeURIComponent(phoneNumber)}`
+  );
+};
+export const checkEmail = async (email: string) => {
+  return await get(
+    `api/theaters/check-email?email=${encodeURIComponent(email)}`
+  );
+};
+export const checkAddress = async (address: string, theaterOwnerId: number) => {
+  return await get(
+    `api/theaters/check-address?address=${encodeURIComponent(
+      address
+    )}&theaterOwnerId=${theaterOwnerId}`
+  );
+};

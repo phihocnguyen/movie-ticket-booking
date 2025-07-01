@@ -10,6 +10,7 @@ import {
   checkEmail,
   checkAddress,
   editTheater,
+  getShowtimeByTheater,
 } from "@/app/services/admin/theaterService";
 import { Owner } from "../../users/owners/page";
 import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
@@ -645,7 +646,22 @@ export default function TheaterForm({
           <div className="flex gap-5 text-[15px] my-2">
             <div
               className="flex gap-5 border p-[4px] rounded-lg items-center  bg-[#CCC6F4] cursor-pointer"
-              onClick={() => {
+              onClick={async () => {
+                // Kiểm tra rạp đã có suất chiếu chưa
+                if (theater.id) {
+                  const res = await getShowtimeByTheater(theater.id);
+                  if (
+                    res &&
+                    res.statusCode === 200 &&
+                    Array.isArray(res.data) &&
+                    res.data.length > 0
+                  ) {
+                    showErrorMessage(
+                      "Không thể chỉnh sửa rạp đã có suất chiếu!"
+                    );
+                    return;
+                  }
+                }
                 setEdit(true);
               }}
             >

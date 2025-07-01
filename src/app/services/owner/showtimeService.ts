@@ -28,3 +28,7 @@ export const getShowtimeByOwner = async (OwnerId: number) => {
   const result = await get(`api/showtimes/owner/${OwnerId}`);
   return result;
 };
+export const getShowtimeByTheater = async (theaterId: number) => {
+  const result = await get(`api/showtimes/theater/${theaterId}`);
+  return result;
+};
