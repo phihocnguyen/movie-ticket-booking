@@ -24,3 +24,7 @@ export const getShowtimeByScreen = async (screenId: number) => {
   const result = await get(`api/showtimes/screen/${screenId}`);
   return result;
 };
+export const getShowtimeByOwner = async (OwnerId: number) => {
+  const result = await get(`api/showtimes/owner/${OwnerId}`);
+  return result;
+};

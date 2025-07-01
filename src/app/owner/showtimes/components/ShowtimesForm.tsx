@@ -3,11 +3,20 @@
 import { useEffect, useState } from "react";
 import { Showtime } from "../page";
 import { SquarePen } from "lucide-react";
-import { getAllMovies, createShowtime } from "@/app/services/owner/showtimeService";
+import {
+  getAllMovies,
+  createShowtime,
+  editShowtime,
+} from "@/app/services/owner/showtimeService";
 import { useAuth } from "@/app/context/AuthContext";
-import { getTheaterOwner, getTheatersByOwner } from "@/app/services/owner/theaterService";
+import {
+  getTheaterOwner,
+  getTheatersByOwner,
+} from "@/app/services/owner/theaterService";
 import { getRoomsByTheater } from "@/app/services/owner/roomService";
 import dayjs from "dayjs";
+import { showErrorMessage, showSuccess } from "@/app/utils/alertHelper";
+import { getTicketsByShowtime } from "@/app/services/owner/tickerService";
 
 interface Movie {
   id: number;
@@ -21,7 +30,11 @@ interface ShowtimeFormProps {
   onClose?: () => void;
 }
 
-export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: ShowtimeFormProps) {
+export default function ShowtimeForm({
+  showtime,
+  fetchShowtimes,
+  onClose,
+}: ShowtimeFormProps) {
   const { userData } = useAuth();
   const [edit, setEdit] = useState<boolean>(false);
   const [form, setForm] = useState({
@@ -66,13 +79,16 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
       }
       if (ownerId) {
         const theatersRes = await getTheatersByOwner(ownerId);
-        if (theatersRes && theatersRes.statusCode === 200 && Array.isArray(theatersRes.data)) {
+        if (
+          theatersRes &&
+          theatersRes.statusCode === 200 &&
+          Array.isArray(theatersRes.data)
+        ) {
           setTheaters(theatersRes.data);
         }
       }
     }
     fetchTheaters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData?.id]);
 
   // Lấy danh sách phòng chiếu khi chọn rạp
@@ -103,8 +119,60 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
     }
   };
 
+  const validateForm = () => {
+    if (!form.movieId || Number(form.movieId) === 0) {
+      showErrorMessage("Vui lòng chọn phim!");
+      return false;
+    }
+    if (!form.theaterId || Number(form.theaterId) === 0) {
+      showErrorMessage("Vui lòng chọn rạp phim!");
+      return false;
+    }
+    if (!form.screenId || Number(form.screenId) === 0) {
+      showErrorMessage("Vui lòng chọn phòng chiếu!");
+      return false;
+    }
+    if (!form.startTime) {
+      showErrorMessage("Vui lòng chọn thời gian bắt đầu!");
+      return false;
+    }
+    if (!form.endTime) {
+      showErrorMessage("Vui lòng chọn thời gian kết thúc!");
+      return false;
+    }
+    if (
+      dayjs(form.startTime).isAfter(dayjs(form.endTime)) ||
+      dayjs(form.startTime).isSame(dayjs(form.endTime))
+    ) {
+      showErrorMessage("Giờ bắt đầu phải nhỏ hơn giờ kết thúc!");
+      return false;
+    }
+    // Lấy thời điểm cuối ngày hôm nay
+    const endOfToday = dayjs().endOf("day");
+    if (
+      dayjs(form.startTime).isBefore(endOfToday) ||
+      dayjs(form.startTime).isSame(endOfToday)
+    ) {
+      showErrorMessage("Giờ bắt đầu phải sau ngày hôm nay!");
+      return false;
+    }
+    if (
+      dayjs(form.endTime).isBefore(endOfToday) ||
+      dayjs(form.endTime).isSame(endOfToday)
+    ) {
+      showErrorMessage("Giờ kết thúc phải sau ngày hôm nay!");
+      return false;
+    }
+    if (!form.price || Number(form.price) <= 0) {
+      showErrorMessage("Giá vé phải lớn hơn 0!");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     const submitData = {
       ...form,
       movieId: Number(form.movieId),
@@ -114,10 +182,30 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
       startTime: dayjs(form.startTime).format("YYYY-MM-DDTHH:mm:ss"),
       endTime: dayjs(form.endTime).format("YYYY-MM-DDTHH:mm:ss"),
     };
-    const res = await createShowtime(submitData);
+    let res;
+    if (showtime && edit) {
+      res = await editShowtime(submitData, showtime.id);
+    } else {
+      res = await createShowtime(submitData);
+    }
     if (res && res.statusCode === 200) {
+      showSuccess(
+        showtime ? "Cập nhật thành công!" : "Tạo suất chiếu thành công!"
+      );
+      if (!showtime) {
+        setForm({
+          movieId: 0,
+          theaterId: 0,
+          screenId: 0,
+          startTime: "",
+          endTime: "",
+          price: 0,
+          isActive: true,
+        });
+        if (onClose) onClose();
+      }
+      setEdit(false);
       if (fetchShowtimes) fetchShowtimes();
-      if (onClose) onClose();
     }
   };
 
@@ -135,7 +223,6 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
             value={form.movieId}
             onChange={handleChange}
             className="w-[70%] border px-2 py-1.5 rounded-[8px] text-[15px]"
-            required
             disabled={showtime !== null && !edit}
           >
             <option value="">Chọn phim</option>
@@ -158,7 +245,6 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
             value={form.theaterId}
             onChange={handleChange}
             className="w-[70%] border px-2 py-1.5 rounded-[8px] text-[15px]"
-            required
             disabled={showtime !== null && !edit}
           >
             <option value="">Chọn rạp phim</option>
@@ -181,8 +267,7 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
             value={form.screenId}
             onChange={handleChange}
             className="w-[70%] border px-2 py-1.5 rounded-[8px] text-[15px]"
-            required
-            disabled={showtime !== null && !edit || !form.theaterId}
+            disabled={(showtime !== null && !edit) || !form.theaterId}
           >
             <option value="">Chọn phòng chiếu</option>
             {rooms.map((room) => (
@@ -205,7 +290,6 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
             value={form.startTime}
             onChange={handleChange}
             className="w-[70%] border px-2 py-1.5 rounded-[8px] text-[15px]"
-            required
             disabled={showtime !== null && !edit}
           />
         </div>
@@ -222,7 +306,6 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
             value={form.endTime}
             onChange={handleChange}
             className="w-[70%] border px-2 py-1.5 rounded-[8px] text-[15px]"
-            required
             disabled={showtime !== null && !edit}
           />
         </div>
@@ -240,7 +323,6 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
             value={form.price}
             onChange={handleChange}
             className="w-[70%] border px-2 py-1.5 rounded-[8px] text-[15px]"
-            required
             disabled={showtime !== null && !edit}
           />
         </div>
@@ -249,7 +331,27 @@ export default function ShowtimeForm({ showtime, fetchShowtimes, onClose }: Show
           <div className="flex gap-5 text-[15px] my-2">
             <div
               className="flex gap-5 border p-[4px] rounded-lg items-center bg-[#CCC6F4] cursor-pointer"
-              onClick={() => {
+              onClick={async () => {
+                if (showtime.id) {
+                  if (dayjs(showtime.endTime).isBefore(dayjs())) {
+                    showErrorMessage(
+                      "Không thể chỉnh sửa suất chiếu đã diễn ra!"
+                    );
+                    return;
+                  }
+                  const ticketsRes = await getTicketsByShowtime(showtime.id);
+                  if (
+                    ticketsRes &&
+                    ticketsRes.statusCode === 200 &&
+                    Array.isArray(ticketsRes.data) &&
+                    ticketsRes.data.length > 0
+                  ) {
+                    showErrorMessage(
+                      "Không thể chỉnh sửa suất chiếu đã có vé đặt!"
+                    );
+                    return;
+                  }
+                }
                 setEdit(true);
               }}
             >

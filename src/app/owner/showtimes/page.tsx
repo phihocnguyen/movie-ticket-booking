@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Eye, Plus, Trash } from "lucide-react";
 import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
 import {
@@ -14,13 +14,36 @@ import {
 import Pagination from "../components/Pagination";
 import BaseModal from "../components/BaseModal";
 import ShowtimeForm from "./components/ShowtimesForm";
-import { getAllShowtime } from "@/app/services/owner/showtimeService";
+import {
+  getAllShowtime,
+  deleteShowtime,
+  getShowtimeByOwner,
+} from "@/app/services/owner/showtimeService";
 import dayjs from "dayjs";
+import {
+  confirmDelete,
+  showErrorMessage,
+  showSuccess,
+} from "@/app/utils/alertHelper";
+import { getTicketsByShowtime } from "@/app/services/owner/tickerService";
+import { useAuth } from "@/app/context/AuthContext";
+import { Owner } from "@/app/admin/users/owners/page";
+import {
+  getTheaterOwner,
+  getTheatersByOwner,
+} from "@/app/services/owner/theaterService";
+import { getRoomsByTheater } from "@/app/services/owner/roomService";
+// import { getTicketsByShowtime } from "@/app/services/owner/tickerService";
 
 export interface Showtime {
   id: number;
   movie: { id: number; title: string; titleVi?: string };
-  screen: { id: number; screenName: string; theaterName?: string; theater?: { id: number; name: string; address: string } };
+  screen: {
+    id: number;
+    screenName: string;
+    theaterName?: string;
+    theater?: { id: number; name: string; address: string };
+  };
   theater?: { id: number; name: string; address: string };
   startTime: string;
   endTime: string;
@@ -36,31 +59,110 @@ export default function Showtimes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
   const [showModal, setShowModal] = useState(false);
-  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
+  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(
+    null
+  );
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [selectedTheater, setSelectedTheater] = useState<string>("");
+  const [selectedScreen, setSelectedScreen] = useState<string>("");
+  const { userData } = useAuth();
+  const [theaterOwner, setTheaterOwner] = useState<Owner | null>(null);
+  const [ownerLoading, setOwnerLoading] = useState(true);
+  const [theaters, setTheaters] = useState<any[]>([]);
+  const [screens, setScreens] = useState<any[]>([]);
 
-  const fetchShowtimes = async () => {
-    const res = await getAllShowtime();
-    if (res && res.statusCode === 200 && Array.isArray(res.data)) {
-      setShowtimes(res.data);
-    } else {
+  const fetchShowtimes = useCallback(async () => {
+    if (!theaterOwner?.id) {
       setShowtimes([]);
+      return;
     }
-  };
+    try {
+      const res = await getShowtimeByOwner(theaterOwner.id);
+      if (res && res.statusCode === 200 && Array.isArray(res.data)) {
+        setShowtimes(res.data);
+      } else {
+        setShowtimes([]);
+        console.error("Không lấy được showtimes", res);
+      }
+    } catch (err) {
+      setShowtimes([]);
+      console.error("Lỗi khi lấy showtimes:", err);
+    }
+  }, [theaterOwner]);
 
   useEffect(() => {
-    fetchShowtimes();
-  }, []);
+    const fetchOwnerAndTheaters = async () => {
+      if (!userData?.id) return;
+      setOwnerLoading(true);
+      try {
+        const res = await getTheaterOwner(userData.id);
+        if (res && res.statusCode === 200 && res.data?.id) {
+          setTheaterOwner(res.data);
+          // Lấy danh sách rạp của owner
+          const theatersRes = await getTheatersByOwner(res.data.id);
+          if (
+            theatersRes &&
+            theatersRes.statusCode === 200 &&
+            Array.isArray(theatersRes.data)
+          ) {
+            setTheaters(theatersRes.data);
+          } else {
+            setTheaters([]);
+          }
+        } else {
+          setTheaterOwner(null);
+          setTheaters([]);
+        }
+      } catch (err) {
+        setTheaterOwner(null);
+        setTheaters([]);
+      } finally {
+        setOwnerLoading(false);
+      }
+    };
+    fetchOwnerAndTheaters();
+  }, [userData]);
+
+  useEffect(() => {
+    if (!ownerLoading) fetchShowtimes();
+  }, [theaterOwner, ownerLoading, fetchShowtimes]);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      if (!selectedTheater) {
+        setScreens([]);
+        return;
+      }
+      const res = await getRoomsByTheater(Number(selectedTheater));
+      if (res && res.statusCode === 200 && Array.isArray(res.data)) {
+        setScreens(res.data);
+      } else {
+        setScreens([]);
+      }
+    };
+    fetchRooms();
+  }, [selectedTheater]);
 
   const filtered = useMemo(() => {
     return showtimes
       .filter((item) =>
-        (item.movie?.titleVi || item.movie?.title || "").toLowerCase().includes(search.toLowerCase())
+        (item.movie?.titleVi || item.movie?.title || "")
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      )
+      .filter((item) =>
+        selectedTheater
+          ? (item.theater?.id || item.screen?.theater?.id) ===
+            Number(selectedTheater)
+          : true
+      )
+      .filter((item) =>
+        selectedScreen ? item.screen?.id === Number(selectedScreen) : true
       )
       .sort((a, b) =>
         sortOrder === "asc" ? a.price - b.price : b.price - a.price
       );
-  }, [search, sortOrder, showtimes]);
+  }, [search, sortOrder, showtimes, selectedTheater, selectedScreen]);
 
   const paginatedShowtimes = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -70,22 +172,91 @@ export default function Showtimes() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, pageSize]);
+  }, [search, pageSize, selectedTheater, selectedScreen]);
 
   const toggleSort = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
+  const handleDelete = async (showtime: Showtime) => {
+    // 1. Xác nhận xóa
+    const confirmed = await confirmDelete(
+      "Bạn có chắc muốn xóa suất chiếu này không?"
+    );
+    if (!confirmed) return;
+    // 2. Kiểm tra đã diễn ra chưa
+    if (dayjs(showtime.endTime).isBefore(dayjs())) {
+      showErrorMessage("Không thể xóa suất chiếu đã diễn ra!");
+      return;
+    }
+
+    // 3. Kiểm tra đã có vé đặt chưa
+    const ticketsRes = await getTicketsByShowtime(showtime.id);
+    if (
+      ticketsRes &&
+      ticketsRes.statusCode === 200 &&
+      Array.isArray(ticketsRes.data) &&
+      ticketsRes.data.length > 0
+    ) {
+      showErrorMessage("Không thể xóa suất chiếu đã có vé đặt!");
+      return;
+    }
+    // 4. Thực hiện xóa
+    try {
+      const res = await deleteShowtime(showtime.id);
+      if (res && res.statusCode === 200) {
+        // Cập nhật lại danh sách showtimes
+        fetchShowtimes();
+        showSuccess("Xóa suất chiếu thành công!");
+      }
+    } catch (error) {
+      showErrorMessage("Xóa suất chiếu thất bại! " + error);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-        <input
-          type="text"
-          placeholder="Tìm kiếm theo tên phim"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md focus:outline-none"
-        />
+        <div className="flex gap-4 items-center justify-start w-full">
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên phim"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full md:w-1/3 px-3 py-[6px] bg-white border border-gray-300 rounded-md 
+            focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+          />
+          <select
+            value={selectedTheater}
+            onChange={(e) => {
+              setSelectedTheater(e.target.value);
+              setSelectedScreen(""); // reset phòng khi đổi rạp
+            }}
+            className="w-full md:w-[250px]  px-3 py-[6px] border rounded-md 
+            focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+          >
+            <option value="">Tất cả rạp</option>
+            {theaters.map((theater) => (
+              <option key={theater.id} value={theater.id}>
+                {theater.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedScreen}
+            onChange={(e) => setSelectedScreen(e.target.value)}
+            className=" w-full md:w-[250px] px-3 py-[6px] border rounded-md 
+            focus:outline-none focus:ring-0 focus:ring-[#1677ff] focus:border-[#1677ff]"
+            disabled={!selectedTheater}
+          >
+            <option value="">Tất cả phòng</option>
+            {screens.map((screen) => (
+              <option key={screen.id} value={screen.id}>
+                {screen.screenName}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           className="flex gap-2.5 border px-10 py-1.5 rounded-[8px] bg-[#432DD7] text-white"
           onClick={() => {
@@ -106,7 +277,9 @@ export default function Showtimes() {
               <TableHead className="px-4 py-4">Phòng</TableHead>
               <TableHead className="px-4 py-4">Rạp</TableHead>
               <TableHead className="px-4 py-4">Giờ chiếu</TableHead>
-              <TableHead className="px-4 py-4 max-w-[200px] truncate">Địa chỉ rạp</TableHead>
+              <TableHead className="px-4 py-4 max-w-[200px] truncate">
+                Địa chỉ rạp
+              </TableHead>
 
               <TableHead
                 onClick={toggleSort}
@@ -126,7 +299,7 @@ export default function Showtimes() {
             {paginatedShowtimes.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-6 text-gray-500"
                 >
                   Không có dữ liệu
@@ -151,7 +324,8 @@ export default function Showtimes() {
                     {dayjs(showtime.startTime).format("HH:mm:ss DD/MM/YYYY")}
                   </TableCell>
                   <TableCell className="px-4 py-4 max-w-[200px] truncate">
-                    {showtime.theater?.address || showtime.screen?.theater?.address}
+                    {showtime.theater?.address ||
+                      showtime.screen?.theater?.address}
                   </TableCell>
 
                   <TableCell className="px-4 py-4">{showtime.price}</TableCell>
@@ -164,7 +338,12 @@ export default function Showtimes() {
                           setShowModal(true);
                         }}
                       />
-                      <Trash className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition" />
+                      <Trash
+                        className="w-4 h-4 text-[#E34724] cursor-pointer hover:scale-110 transition"
+                        onClick={() => {
+                          handleDelete(showtime);
+                        }}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -193,7 +372,11 @@ export default function Showtimes() {
           }
           onClose={() => setShowModal(false)}
         >
-          <ShowtimeForm showtime={selectedShowtime} fetchShowtimes={fetchShowtimes} onClose={() => setShowModal(false)} />
+          <ShowtimeForm
+            showtime={selectedShowtime}
+            fetchShowtimes={fetchShowtimes}
+            onClose={() => setShowModal(false)}
+          />
         </BaseModal>
       )}
     </div>
