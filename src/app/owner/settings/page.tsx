@@ -16,8 +16,6 @@ interface SystemSettings {
   ownerId: number | null;
   commissionRate: number | null;
   maxVoucherPerType: number | null;
-  cancelFee: number | null;
-  cancelTimeLimit: number | null;
   priceSeatRegular: number | null;
   priceSeatVip: number | null;
   priceSeatDouble: number | null;
@@ -28,8 +26,6 @@ const emptySystemSettings: SystemSettings = {
   ownerId: null,
   commissionRate: null,
   maxVoucherPerType: null,
-  cancelFee: null,
-  cancelTimeLimit: null,
   priceSeatRegular: null,
   priceSeatVip: null,
   priceSeatDouble: null,
@@ -83,32 +79,6 @@ export default function SystemSettingsPage() {
   console.log("ownerId", ownerId);
 
   const validateForm = () => {
-    // cancelFee
-    if (
-      form.cancelFee === null ||
-      String(form.cancelFee) === "" ||
-      isNaN(Number(form.cancelFee))
-    ) {
-      showErrorMessage("Phí huỷ vé phải là số và không được để trống");
-      return false;
-    } else if (Number(form.cancelFee) < 0) {
-      showErrorMessage("Phí huỷ vé không được nhỏ hơn 0");
-      return false;
-    }
-    // cancelTimeLimit
-    if (
-      form.cancelTimeLimit === null ||
-      String(form.cancelTimeLimit) === "" ||
-      isNaN(Number(form.cancelTimeLimit))
-    ) {
-      showErrorMessage(
-        "Giới hạn thời gian huỷ vé phải là số và không được để trống"
-      );
-      return false;
-    } else if (Number(form.cancelTimeLimit) < 0) {
-      showErrorMessage("Giới hạn thời gian huỷ vé không được nhỏ hơn 0");
-      return false;
-    }
     // priceSeatRegular (tỉ lệ)
     if (
       form.priceSeatRegular === null ||
@@ -195,46 +165,6 @@ export default function SystemSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Cancel Fee */}
-          {/* <div className="grid grid-cols-12 items-center gap-4">
-            <label
-              htmlFor="cancelFee"
-              className="col-span-5 text-base font-medium"
-            >
-              Phí huỷ vé (VNĐ)
-            </label>
-
-            <input
-              id="cancelFee"
-              type="number"
-              min={0}
-              value={form.cancelFee ?? ""}
-              onChange={(e) => handleChange(e, "cancelFee")}
-              className="col-span-5 border rounded-[8px] px-4 py-2 focus:ring-0 focus:border-[#1677ff] outline-none"
-              disabled={!editing}
-            />
-          </div>
-
-          
-          <div className="grid grid-cols-12 items-center gap-4">
-            <label
-              htmlFor="cancelTimeLimit"
-              className="col-span-5 text-base font-medium"
-            >
-              Giới hạn thời gian huỷ vé (phút trước suất chiếu)
-            </label>
-
-            <input
-              id="cancelTimeLimit"
-              type="number"
-              min={0}
-              value={form.cancelTimeLimit ?? ""}
-              onChange={(e) => handleChange(e, "cancelTimeLimit")}
-              className="col-span-5 border rounded-[8px] px-4 py-2 focus:ring-0 focus:border-[#1677ff] outline-none"
-              disabled={!editing}
-            />
-          </div> */}
-
           {/* Price Seat Regular */}
           <div className="grid grid-cols-12 items-center gap-4">
             <label

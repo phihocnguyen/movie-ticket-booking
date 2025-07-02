@@ -83,6 +83,11 @@ button {
   --color-firefox: #155dfc;
   --color-edge: #1447e6;
   --color-other: #193cb8;
+  --chart-1: #8ec5ff;
+  --chart-2: #2b7fff;
+  --chart-3: #155dfc;
+  --chart-4: #1447e6;
+  --chart-5: #193cb8;
 }
 
 .dark {

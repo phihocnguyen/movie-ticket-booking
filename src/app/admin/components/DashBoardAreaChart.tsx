@@ -19,7 +19,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getRevenueChart } from "@/app/services/admin/dashboardService";
+import { showErrorMessage } from "@/app/utils/alertHelper";
+import { BarChart, Bar, Tooltip, ResponsiveContainer } from "recharts";
+
 const chartData = [
   { month: "January", desktop: 186 },
   { month: "February", desktop: 305 },
@@ -36,15 +40,107 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function DashBoardAreaChart() {
-  const [range, setRange] = useState<{ from: Date | null; to: Date | null }>({
-    from: new Date("2025-01-01"),
-    to: new Date("2025-06-01"),
-  });
-
-  function isValidMonthFormat(value: string) {
-    return dayjs(value, "YYYY - MM", true).isValid();
+// Custom Tooltip
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        style={{
+          background: "white",
+          border: "1px solid #e5e7eb",
+          borderRadius: 10,
+          boxShadow: "0 4px 16px rgba(67,45,215,0.08)",
+          padding: "14px 18px",
+          minWidth: 180,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 13,
+            marginBottom: 6,
+            color: "#432DD7",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          Tháng: {dayjs(label).format("MM/YYYY")}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "#374151",
+            marginTop: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <span>
+            Doanh thu:{" "}
+            <span style={{ color: "#432DD7", fontWeight: 600 }}>
+              {payload[0].value.toLocaleString()}đ
+            </span>
+          </span>
+        </div>
+      </div>
+    );
   }
+  return null;
+};
+
+export default function DashBoardAreaChart() {
+  const [from, setFrom] = useState<Date | null>(null);
+  const [to, setTo] = useState<Date | null>(null);
+
+  const getDefaultRange = () => {
+    const end = dayjs();
+    const start = dayjs().subtract(5, "month");
+    return { start: start.toDate(), end: end.toDate() };
+  };
+
+  const [revenueChart, setRevenueChart] = useState<any[]>([]);
+
+  const handleFilter = async () => {
+    if (!from || !to) {
+      showErrorMessage(
+        "Vui lòng chọn đầy đủ cả ngày bắt đầu và ngày kết thúc!"
+      );
+      return;
+    }
+    const fromMonth = dayjs(from).format("YYYY-MM");
+    const toMonth = dayjs(to).format("YYYY-MM");
+    const res = await getRevenueChart(fromMonth, toMonth);
+    if (res && res.statusCode === 200) {
+      setRevenueChart(res.data || []);
+    } else {
+      setRevenueChart([]);
+      showErrorMessage(res.message);
+    }
+  };
+
+  useEffect(() => {
+    const { start, end } = getDefaultRange();
+    setFrom(start);
+    setTo(end);
+    fetchData(start, end);
+    // eslint-disable-next-line
+  }, []);
+
+  const fetchData = async (fromDate: Date, toDate: Date) => {
+    const fromMonth = dayjs(fromDate).format("YYYY-MM");
+    const toMonth = dayjs(toDate).format("YYYY-MM");
+    const res = await getRevenueChart(fromMonth, toMonth);
+    if (res && res.statusCode === 200) {
+      setRevenueChart(res.data || []);
+    } else {
+      setRevenueChart([]);
+      showErrorMessage(res.message);
+    }
+  };
+
+  console.log("revenueChart", revenueChart);
   return (
     <Card className="w-2/3">
       <CardHeader>
@@ -54,8 +150,8 @@ export default function DashBoardAreaChart() {
             <span className="text-gray-700 dark:text-gray-300">Từ</span>
             <div className="relative z-10">
               <DatePicker
-                selected={range.from}
-                onChange={(date) => setRange({ ...range, from: date })}
+                selected={from}
+                onChange={(date) => setFrom(date)}
                 dateFormat="yyyy - MM"
                 showMonthYearPicker
                 placeholderText="YYYY - MM"
@@ -69,8 +165,8 @@ export default function DashBoardAreaChart() {
             <span className="text-gray-700 dark:text-gray-300">đến</span>
             <div className="relative z-10">
               <DatePicker
-                selected={range.to}
-                onChange={(date) => setRange({ ...range, to: date })}
+                selected={to}
+                onChange={(date) => setTo(date)}
                 dateFormat="yyyy - MM"
                 showMonthYearPicker
                 placeholderText="YYYY - MM"
@@ -81,39 +177,43 @@ export default function DashBoardAreaChart() {
                  transition-none shadow-none"
               />
             </div>
+            <button
+              onClick={handleFilter}
+              // disabled={!from || !to}
+              className="ml-2 px-3 py-1 bg-[#432DD7] text-white rounded"
+            >
+              Lọc
+            </button>
           </div>
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
-          <AreaChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
-            />
-            <Area
-              dataKey="desktop"
-              type="natural"
-              fill="oklch(0.809 0.105 251.813)"
-              stroke="#432DD7"
-            />
-          </AreaChart>
-        </ChartContainer>
+        {revenueChart && revenueChart.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={revenueChart}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={(month) => dayjs(month).format("MM/YYYY")}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="#432DD7"
+                fill="#a5b4fc"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                activeDot={{ r: 6 }}
+                isAnimationActive={true}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm">
+            Đang tải dữ liệu hoặc chưa có dữ liệu
+          </div>
+        )}
       </CardContent>
     </Card>
   );

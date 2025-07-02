@@ -3,10 +3,14 @@ import { useRouter } from "next/navigation";
 import DashBoardAreaChart from "./components/DashBoardAreaChart";
 import DashBoardPieChart from "./components/DashBoardPiechart";
 import { Ticket, CircleDollarSign, Clapperboard, Theater } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getOverview } from "../services/admin/dashboardService";
+import { showErrorMessage } from "../utils/alertHelper";
 
 export default function DashBoard() {
   const router = useRouter();
+  const [overview, setOverview] = useState<any>(null);
+  const [revenueChart, setRevenueChart] = useState<any>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -15,6 +19,19 @@ export default function DashBoard() {
       router.replace("/login"); // đẩy về login nếu chưa đăng nhập
     }
   }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await getOverview();
+      if (res && res.statusCode === 200) {
+        setOverview(res.data);
+      } else {
+        showErrorMessage(res.message);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Record Section */}
@@ -28,7 +45,7 @@ export default function DashBoard() {
               Tổng doanh thu
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              1.2 tỷ VND
+              {overview?.totalRevenue.toLocaleString()} VND
             </div>
           </div>
         </div>
@@ -41,7 +58,7 @@ export default function DashBoard() {
               Tổng vé đã bán
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              12,500
+              {overview?.totalTicketsSold.toLocaleString()}
             </div>
           </div>
         </div>
@@ -55,7 +72,7 @@ export default function DashBoard() {
               Tổng số phim
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              52
+              {overview?.totalMovies.toLocaleString()}
             </div>
           </div>
         </div>
@@ -69,7 +86,7 @@ export default function DashBoard() {
               Tổng số rạp
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              18
+              {overview?.totalTheaters.toLocaleString()}
             </div>
           </div>
         </div>

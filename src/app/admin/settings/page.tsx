@@ -17,8 +17,6 @@ interface SystemSettings {
   ownerId: number | null;
   commissionRate: number | null;
   maxVoucherPerType: number | null;
-  cancelFee: number | null;
-  cancelTimeLimit: number | null;
   priceSeatRegular: number | null;
   priceSeatVip: number | null;
   priceSeatDouble: number | null;
@@ -29,8 +27,6 @@ const emptySystemSettings: SystemSettings = {
   ownerId: null,
   commissionRate: null,
   maxVoucherPerType: null,
-  cancelFee: null,
-  cancelTimeLimit: null,
   priceSeatRegular: null,
   priceSeatVip: null,
   priceSeatDouble: null,

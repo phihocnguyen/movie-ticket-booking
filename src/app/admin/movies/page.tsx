@@ -250,19 +250,7 @@ export default function Movies() {
                     <div className="flex gap-2 items-center">
                       <Eye
                         className="w-4 h-4 text-[#03A9F4] cursor-pointer hover:scale-110 transition"
-                        onClick={async () => {
-                          // Kiểm tra showtime trước khi cho sửa
-                          const showtimeRes = await getShowtimeById(movie.id);
-                          if (
-                            showtimeRes &&
-                            Array.isArray(showtimeRes.data) &&
-                            showtimeRes.data.length > 0
-                          ) {
-                            showErrorMessage(
-                              "Không thể sửa phim đã có suất chiếu!"
-                            );
-                            return;
-                          }
+                        onClick={() => {
                           setSelectedMovie(movie);
                           setShowModal(true);
                         }}
