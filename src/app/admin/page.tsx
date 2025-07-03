@@ -10,7 +10,7 @@ import { showErrorMessage } from "../utils/alertHelper";
 export default function DashBoard() {
   const router = useRouter();
   const [overview, setOverview] = useState<any>(null);
-  const [revenueChart, setRevenueChart] = useState<any>(null);
+  // const [revenueChart, setRevenueChart] = useState<any>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");

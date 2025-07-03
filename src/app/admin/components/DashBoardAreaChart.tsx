@@ -24,21 +24,21 @@ import { getRevenueChart } from "@/app/services/admin/dashboardService";
 import { showErrorMessage } from "@/app/utils/alertHelper";
 import { BarChart, Bar, Tooltip, ResponsiveContainer } from "recharts";
 
-const chartData = [
-  { month: "January", desktop: 186 },
-  { month: "February", desktop: 305 },
-  { month: "March", desktop: 237 },
-  { month: "April", desktop: 73 },
-  { month: "May", desktop: 209 },
-  { month: "June", desktop: 214 },
-];
+// const chartData = [
+//   { month: "January", desktop: 186 },
+//   { month: "February", desktop: 305 },
+//   { month: "March", desktop: 237 },
+//   { month: "April", desktop: 73 },
+//   { month: "May", desktop: 209 },
+//   { month: "June", desktop: 214 },
+// ];
 
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "(var(--chart-1))",
-  },
-} satisfies ChartConfig;
+// const chartConfig = {
+//   desktop: {
+//     label: "Desktop",
+//     color: "(var(--chart-1))",
+//   },
+// } satisfies ChartConfig;
 
 // Custom Tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -121,11 +121,15 @@ export default function DashBoardAreaChart() {
   };
 
   useEffect(() => {
+    if (!from || !to) return;
+    fetchData(from, to);
+    // eslint-disable-next-line
+  }, [from, to]);
+
+  useEffect(() => {
     const { start, end } = getDefaultRange();
     setFrom(start);
     setTo(end);
-    fetchData(start, end);
-    // eslint-disable-next-line
   }, []);
 
   const fetchData = async (fromDate: Date, toDate: Date) => {

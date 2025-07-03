@@ -3,11 +3,18 @@ import { useRouter } from "next/navigation";
 import DashBoardAreaChart from "./components/DashBoardAreaChart";
 import DashBoardPieChart from "./components/DashBoardPiechart";
 import { Ticket, CircleDollarSign, Clapperboard, Theater } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { getOwnerByUserId } from "../services/owner/foodService";
+import { Owner } from "../admin/users/owners/page";
+import { getOverviewByOwner } from "../services/owner/dashboardService";
+import { showErrorMessage } from "../utils/alertHelper";
 
 export default function DashBoard() {
   const router = useRouter();
-
+  // const { userData } = useAuth();
+  const [owner, setOwner] = useState<Owner | null>(null);
+  const [overview, setOverview] = useState<any>(null);
   useEffect(() => {
     const token = localStorage.getItem("token");
     // Có thể kiểm tra thêm role nếu cần
@@ -15,6 +22,37 @@ export default function DashBoard() {
       router.replace("/login"); // đẩy về login nếu chưa đăng nhập
     }
   }, []);
+  const fetchOwner = async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+    const res = await getOwnerByUserId(Number(userId));
+    if (res && res.statusCode === 200 && res.data) {
+      setOwner(res.data);
+    } else {
+      setOwner(null);
+    }
+  };
+  const fetchData = async () => {
+    try {
+      if (!owner) return;
+      const res = await getOverviewByOwner(owner.id);
+      console.log("res", res);
+      if (res && res.statusCode === 200 && res.data) {
+        setOverview(res.data);
+      } else {
+        setOverview(null);
+      }
+    } catch (error) {
+      showErrorMessage("Lỗi khi lấy danh sách food:" + error);
+    }
+  };
+  useEffect(() => {
+    fetchOwner();
+  }, []);
+  useEffect(() => {
+    fetchData();
+  }, [owner]);
+  console.log("overview", overview);
   return (
     <div className="space-y-6">
       {/* Record Section */}
@@ -28,7 +66,7 @@ export default function DashBoard() {
               Tổng doanh thu
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              150,000 VND
+              {overview?.totalRevenue.toLocaleString()} VND
             </div>
           </div>
         </div>
@@ -41,7 +79,7 @@ export default function DashBoard() {
               Tổng vé đã bán
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              1
+              {overview?.totalTicketsSold.toLocaleString()}
             </div>
           </div>
         </div>
@@ -55,7 +93,7 @@ export default function DashBoard() {
               Tổng suất chiếu
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              3
+              {overview?.totalTheaters.toLocaleString()}
             </div>
           </div>
         </div>
@@ -69,7 +107,7 @@ export default function DashBoard() {
               Tổng số rạp
             </div>
             <div className="text-xl font-semibold text-gray-900 dark:text-white">
-              3
+              {overview?.totalTheaters.toLocaleString()}
             </div>
           </div>
         </div>
@@ -77,8 +115,8 @@ export default function DashBoard() {
 
       {/* Chart Section */}
       <div className="flex flex-col lg:flex-row gap-5 w-full">
-        <DashBoardAreaChart />
-        <DashBoardPieChart />
+        <DashBoardAreaChart ownerId={owner?.id} />
+        <DashBoardPieChart ownerId={owner?.id} />
       </div>
     </div>
   );
